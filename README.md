@@ -88,11 +88,11 @@ uvicorn main:app --reload --port 8000
 ```
 PDSA/
 ├── games/                     # Individual game modules
-│   ├── eight_queens/         # 👑 Member 5
-│   ├── snake_ladder/         # 🐍 Member 1  
-│   ├── traffic_simulation/   # 🚦 Member 2
-│   ├── traveling_salesman/   # 🗺️ Member 3
-│   └── tower_hanoi/          # 🗼 Member 4
+│   ├── eight_queens/         #  Member 5
+│   ├── snake_ladder/         #  Member 1  
+│   ├── traffic_simulation/   #  Member 2
+│   ├── traveling_salesman/   #  Member 3
+│   └── tower_hanoi/          #  Member 4
 │
 ├── shared/                   # Common components
 │   ├── frontend/            # Main menu & shared UI
@@ -194,38 +194,3 @@ python main.py
 python shared/database/connection.py
 # Should see: "Database connection successful"
 ```
-
-## Support & Communication
-
-- **Issues**: Use GitHub Issues for bugs/questions
-- **Code Reviews**: All Pull Requests need 1 approval
-- **Team Chat**: [Add your communication channel]
-- **Documentation**: Keep your game's README.md updated
-
-## Submission Checklist (Due: December 8, 2025)
-
-### Individual (Each Member):
-- [ ] Game module complete with 2+ algorithms
-- [ ] Unit tests with 80%+ coverage
-- [ ] Performance analysis (15-round testing)
-- [ ] Individual report documentation
-- [ ] Database data dump
-
-### Group (Team Lead):
-- [ ] All games integrated in main menu
-- [ ] Complete database schema
-- [ ] Group report with screenshots
-- [ ] Video demonstration
-- [ ] Contribution table
-
-## Tech Stack
-
-- **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript
-- **Backend**: Python FastAPI
-- **Database**: MySQL
-- **Testing**: Python unittest
-- **Version Control**: Git/GitHub
-
----
-
-**Ready to start coding? Follow the setup steps above and begin implementing your assigned game! 🚀**
