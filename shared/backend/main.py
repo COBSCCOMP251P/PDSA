@@ -31,6 +31,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files for frontend
+import os
+from pathlib import Path
+
+# Get the project root directory
+project_root = Path(__file__).parent.parent.parent
+
+# Mount static files with correct paths
+app.mount("/games", StaticFiles(directory=str(project_root / "games")), name="games")
+app.mount("/shared", StaticFiles(directory=str(project_root / "shared" / "frontend")), name="shared_frontend")
+
 # Health check endpoint
 @app.get("/api/health")
 async def health_check():
