@@ -1,7 +1,5 @@
 # PDSA Interactive Algorithm Game Collection
 
-🎮 **University Assignment - Algorithm & Data Structures Games**
-
 ## Quick Start for Team Members
 
 ### 1. Clone and Setup
@@ -157,22 +155,6 @@ git push origin feature/eight-queens-[your-name]
 # Team lead will review and merge
 # Update main menu to include your game
 ```
-
-## Development Rules
-
-### ✅ DO:
-- Work only in your `games/[your-game]/` folder
-- Use your reserved API route prefix
-- Follow the file naming conventions
-- Write unit tests for your algorithms
-- Document your code with comments
-- Update your game's README.md
-
-### ❌ DON'T:
-- Modify `shared/` files without team discussion
-- Use other members' API routes
-- Commit to main branch directly
-- Change database schema without coordination
 
 ## Testing Your Setup
 
