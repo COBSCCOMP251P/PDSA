@@ -1,0 +1,22 @@
+{
+  "name": "pdsa-games",
+  "version": "1.0.0",
+  "description": "Interactive Algorithm Game Collection - Frontend Dependencies",
+  "scripts": {
+    "build-css": "tailwindcss build -i shared/frontend/css/input.css -o shared/frontend/css/tailwind.css",
+    "watch-css": "tailwindcss build -i shared/frontend/css/input.css -o shared/frontend/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.5",
+    "@tailwindcss/forms": "^0.5.7"
+  },
+  "keywords": [
+    "algorithms",
+    "data-structures", 
+    "games",
+    "university",
+    "pdsa"
+  ],
+  "author": "PDSA Team",
+  "license": "MIT"
+}

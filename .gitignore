@@ -1,0 +1,89 @@
+# Environment files (contains sensitive data)
+.env
+*.env
+!.env.example
+
+# General
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+.cache
+venv/
+ENV/
+env/
+.venv/
+pip-wheel-metadata/
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+dist/
+build/
+coverage/
+
+# Virtual environments
+/.venv/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter
+.ipynb_checkpoints
+
+# Logs
+logs/
+*.log
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Distribution / packaging
+*.egg-info/
+*.whl
+
+# Database files
+*.db
+*.sqlite3
+data/
+dumps/
+
+# Temporary files
+*.swp
+*.tmp
+*.bak
+
+# OS specific
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Tailwind CSS generated file
+shared/frontend/css/tailwind.css
+
+# Documentation files (keep local only)
+pdsa.md
+PROJECT_PLAN.md
+PROJECT_STRUCTURE.md
+.specstory/

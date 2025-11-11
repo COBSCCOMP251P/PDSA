@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDSA - Interactive Algorithm Games</title>
+    <link href="css/tailwind.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="font-game bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen">
+    <!-- Header -->
+    <header class="text-white py-6">
+        <div class="container mx-auto px-6">
+            <h1 class="text-4xl font-bold text-center mb-2">PDSA Interactive Algorithm Games</h1>
+            <p class="text-center text-purple-200">University Assignment - Algorithm & Data Structures Collection</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            <!-- Eight Queens Game -->
+            <div class="game-card">
+                <div class="flex items-center mb-4">
+                    <div class="text-3xl mr-3">👑</div>
+                    <h2 class="game-title mb-0">Eight Queens Puzzle</h2>
+                </div>
+                <p class="text-gray-600 mb-4">Place 8 queens on a chessboard so none attack each other. Find all 92 solutions using sequential and multi-threaded algorithms.</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="algorithm-badge">Backtracking</span>
+                    <span class="algorithm-badge">Multi-threading</span>
+                </div>
+                <button onclick="loadGame('queens')" class="game-button w-full" disabled>
+                    Coming Soon
+                </button>
+            </div>
+
+            <!-- Snake and Ladder Game -->
+            <div class="game-card">
+                <div class="flex items-center mb-4">
+                    <div class="text-3xl mr-3">🐍</div>
+                    <h2 class="game-title mb-0">Snake & Ladder</h2>
+                </div>
+                <p class="text-gray-600 mb-4">Find the minimum number of dice throws to reach the end of a randomly generated Snake & Ladder board.</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="algorithm-badge">BFS</span>
+                    <span class="algorithm-badge">Dynamic Programming</span>
+                </div>
+                <button onclick="loadGame('snake-ladder')" class="game-button w-full" disabled>
+                    Coming Soon
+                </button>
+            </div>
+
+            <!-- Traffic Simulation -->
+            <div class="game-card">
+                <div class="flex items-center mb-4">
+                    <div class="text-3xl mr-3">🚦</div>
+                    <h2 class="game-title mb-0">Traffic Simulation</h2>
+                </div>
+                <p class="text-gray-600 mb-4">Calculate maximum flow through a traffic network using graph algorithms and visualize the results.</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="algorithm-badge">Ford-Fulkerson</span>
+                    <span class="algorithm-badge">Edmonds-Karp</span>
+                </div>
+                <button onclick="loadGame('traffic')" class="game-button w-full" disabled>
+                    Coming Soon
+                </button>
+            </div>
+
+            <!-- Traveling Salesman -->
+            <div class="game-card">
+                <div class="flex items-center mb-4">
+                    <div class="text-3xl mr-3">🗺️</div>
+                    <h2 class="game-title mb-0">Traveling Salesman</h2>
+                </div>
+                <p class="text-gray-600 mb-4">Find the shortest route visiting selected cities exactly once and return to the starting point.</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="algorithm-badge">Brute Force</span>
+                    <span class="algorithm-badge">Genetic Algorithm</span>
+                    <span class="algorithm-badge">Held-Karp</span>
+                </div>
+                <button onclick="loadGame('tsp')" class="game-button w-full" disabled>
+                    Coming Soon
+                </button>
+            </div>
+
+            <!-- Tower of Hanoi -->
+            <div class="game-card">
+                <div class="flex items-center mb-4">
+                    <div class="text-3xl mr-3">🗼</div>
+                    <h2 class="game-title mb-0">Tower of Hanoi</h2>
+                </div>
+                <p class="text-gray-600 mb-4">Solve the classic Tower of Hanoi puzzle with 3 or 4 pegs using different algorithmic approaches.</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="algorithm-badge">Recursive</span>
+                    <span class="algorithm-badge">Iterative</span>
+                    <span class="algorithm-badge">Frame-Stewart</span>
+                </div>
+                <button onclick="loadGame('hanoi')" class="game-button w-full" disabled>
+                    Coming Soon
+                </button>
+            </div>
+
+            <!-- Performance Dashboard -->
+            <div class="game-card">
+                <div class="flex items-center mb-4">
+                    <div class="text-3xl mr-3">📊</div>
+                    <h2 class="game-title mb-0">Performance Dashboard</h2>
+                </div>
+                <p class="text-gray-600 mb-4">View algorithm performance comparisons, execution times, and complexity analysis across all games.</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="algorithm-badge">Analytics</span>
+                    <span class="algorithm-badge">Benchmarks</span>
+                </div>
+                <button onclick="loadDashboard()" class="game-button w-full" disabled>
+                    Coming Soon
+                </button>
+            </div>
+        </div>
+
+        <!-- Team Information -->
+        <div class="mt-12 bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
+            <h3 class="text-xl font-bold mb-4 text-center">Development Team</h3>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
+                <div>
+                    <div class="text-2xl mb-2">👑</div>
+                    <p class="font-semibold">Member 5</p>
+                    <p class="text-sm text-purple-200">Eight Queens</p>
+                </div>
+                <div>
+                    <div class="text-2xl mb-2">🐍</div>
+                    <p class="font-semibold">Member 1</p>
+                    <p class="text-sm text-purple-200">Snake & Ladder</p>
+                </div>
+                <div>
+                    <div class="text-2xl mb-2">🚦</div>
+                    <p class="font-semibold">Member 2</p>
+                    <p class="text-sm text-purple-200">Traffic Simulation</p>
+                </div>
+                <div>
+                    <div class="text-2xl mb-2">🗺️</div>
+                    <p class="font-semibold">Member 3</p>
+                    <p class="text-sm text-purple-200">Traveling Salesman</p>
+                </div>
+                <div>
+                    <div class="text-2xl mb-2">🗼</div>
+                    <p class="font-semibold">Member 4</p>
+                    <p class="text-sm text-purple-200">Tower of Hanoi</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-white text-center py-6 mt-12">
+        <p class="text-purple-200">&copy; 2025 PDSA Team - University Assignment</p>
+        <p class="text-sm text-purple-300 mt-2">Algorithm & Data Structures Interactive Game Collection</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
