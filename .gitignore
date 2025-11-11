@@ -3,6 +3,9 @@
 *.env
 !.env.example
 
+# GitHub folder (keep local only)
+.github/
+
 # General
 .DS_Store
 Thumbs.db
