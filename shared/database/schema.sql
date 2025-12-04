@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS SnakeLadderResults (
     session_id INT NOT NULL,
     player_name VARCHAR(100) NOT NULL,
     board_size INT NOT NULL,
-    algorithm_type ENUM('bfs', 'dynamic_programming') NOT NULL,
+    algorithm_type ENUM('bfs', 'dfs') NOT NULL,
     player_answer INT NOT NULL,
     correct_answer INT NOT NULL,
     is_correct BOOLEAN NOT NULL,
@@ -61,6 +61,21 @@ CREATE TABLE IF NOT EXISTS SnakeLadderResults (
     FOREIGN KEY (session_id) REFERENCES GameSessions(session_id) ON DELETE CASCADE,
     INDEX idx_board_size (board_size),
     INDEX idx_algorithm_type (algorithm_type)
+);
+
+-- Snake and Ladder Algorithm Performance Tracking
+CREATE TABLE IF NOT EXISTS SnakeLadderAlgorithmPerformance (
+    performance_id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id INT NOT NULL,
+    board_size INT NOT NULL,
+    algorithm_type ENUM('bfs', 'dfs') NOT NULL,
+    execution_time_ms DECIMAL(10,3) NOT NULL,
+    minimum_moves INT NOT NULL,
+    board_config JSON, -- Store ladder/snake positions for reproducibility
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES GameSessions(session_id) ON DELETE CASCADE,
+    INDEX idx_algorithm_type (algorithm_type),
+    INDEX idx_board_size (board_size)
 );
 
 -- Traffic Simulation Results (Member 2)

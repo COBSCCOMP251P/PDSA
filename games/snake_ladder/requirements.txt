@@ -1,0 +1,25 @@
+# Snake and Ladder Game - Python Dependencies
+# Specific requirements for the Snake and Ladder game module
+
+# Core Framework
+fastapi>=0.104.1
+uvicorn>=0.24.0
+pydantic>=2.0.0
+
+# Database
+mysql-connector-python>=8.2.0
+
+# Utilities
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+
+# Testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+
+# Optional: Development tools
+black>=23.10.1
+flake8>=6.1.0
+
+# Note: These are already in the main requirements.txt at project root
+# Install from project root: pip install -r requirements.txt

@@ -11,6 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import os
+import sys
+from pathlib import Path
+
+# Add parent directory to Python path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load environment variables
 load_dotenv()
@@ -61,15 +66,19 @@ async def root():
 # Game route registration
 # Individual game modules will register their routes here
 
+# Snake Ladder routes (Member 1)
+try:
+    from games.snake_ladder.api.routes import router as snake_ladder_router
+    app.include_router(snake_ladder_router, prefix="/api", tags=["Snake Ladder"])
+    print("✅ Snake Ladder routes registered")
+except ImportError as e:
+    print(f"⚠️ Snake Ladder routes not loaded: {e}")
+
 # Example route structure for team members:
 """
 # Eight Queens routes (Member 5)
 from games.eight_queens.api.queens_routes import router as queens_router
 app.include_router(queens_router, prefix="/api/queens", tags=["Eight Queens"])
-
-# Snake Ladder routes (Member 1)
-from games.snake_ladder.api.snake_ladder_routes import router as snake_ladder_router
-app.include_router(snake_ladder_router, prefix="/api/snake-ladder", tags=["Snake Ladder"])
 
 # Traffic Simulation routes (Member 2)
 from games.traffic_simulation.api.traffic_routes import router as traffic_router
