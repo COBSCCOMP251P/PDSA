@@ -15,7 +15,11 @@ import sys
 from pathlib import Path
 
 # Add parent directory to Python path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# main.py is in shared/backend/, need to go up to PDSA/ to access games/
+current_dir = Path(__file__).resolve().parent  # shared/backend/
+shared_dir = current_dir.parent  # shared/
+root_dir = shared_dir.parent  # PDSA/
+sys.path.insert(0, str(root_dir))
 
 # Load environment variables
 load_dotenv()

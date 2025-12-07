@@ -179,7 +179,11 @@ function createBoardCell(cellNum, boardConfig, totalCells) {
         cellContent = `🐍→${boardConfig.snakes[cellNum]}`;
     }
     
-    cell.classList.add(cellClass);
+    // Only add class if it's not empty
+    if (cellClass) {
+        cell.classList.add(cellClass);
+    }
+    
     cell.innerHTML = `
         <div class="cell-number">${cellNum}</div>
         ${cellContent ? `<div class="cell-content">${cellContent}</div>` : ''}
@@ -321,6 +325,7 @@ function displayResult(data) {
     // Player statistics
     if (data.player_stats) {
         const playerStats = document.getElementById('playerStats');
+        const avgTime = parseFloat(data.player_stats.avg_execution_time) || 0;
         playerStats.innerHTML = `
             <div class="detail-row">
                 <span class="detail-label">Total Games:</span>
@@ -336,7 +341,7 @@ function displayResult(data) {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Avg Execution Time:</span>
-                <span class="detail-value">${data.player_stats.avg_execution_time.toFixed(3)} ms</span>
+                <span class="detail-value">${avgTime.toFixed(3)} ms</span>
             </div>
         `;
     }

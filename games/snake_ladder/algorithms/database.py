@@ -238,7 +238,7 @@ class SnakeLadderDB:
                     'total_games': result['total_games'],
                     'correct_answers': result['correct_answers'],
                     'accuracy': round((result['correct_answers'] / result['total_games']) * 100, 2),
-                    'avg_execution_time': round(result['avg_execution_time'], 3),
+                    'avg_execution_time': round(float(result['avg_execution_time']) if result['avg_execution_time'] else 0.0, 3),
                     'min_board_size': result['min_board_size'],
                     'max_board_size': result['max_board_size']
                 }
