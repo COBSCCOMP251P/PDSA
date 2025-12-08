@@ -38,9 +38,18 @@ from pathlib import Path
 # Get the project root directory
 project_root = Path(__file__).parent.parent.parent
 
+# Import game routes
+try:
+    from games.eight_queens.api.routes import router as eight_queens_router
+    app.include_router(eight_queens_router)
+except ImportError:
+    print("Warning: Eight Queens routes not found. Game may not be fully functional.")
+
 # Mount static files with correct paths
 app.mount("/games", StaticFiles(directory=str(project_root / "games")), name="games")
-app.mount("/shared", StaticFiles(directory=str(project_root / "shared" / "frontend")), name="shared_frontend")
+# Mount static files
+app.mount("/shared", StaticFiles(directory=project_root / "shared" / "frontend"), name="shared")
+app.mount("/games/eight_queens/frontend", StaticFiles(directory=project_root / "games" / "eight_queens" / "frontend"), name="eight_queens_frontend")
 
 # Health check endpoint
 @app.get("/api/health")
@@ -72,28 +81,47 @@ async def root():
 # Game route registration
 # Individual game modules will register their routes here
 
-# Example route structure for team members:
-"""
-# Eight Queens routes (Member 5)
-from games.eight_queens.api.queens_routes import router as queens_router
-app.include_router(queens_router, prefix="/api/queens", tags=["Eight Queens"])
+# Eight Queens routes (Member 5) - Original and simple gaming version
+try:
+    from games.eight_queens.api.routes import router as eight_queens_router
+    from games.eight_queens.api.simple_gaming_routes import router as eight_queens_gaming_router
+    app.include_router(eight_queens_router)
+    app.include_router(eight_queens_gaming_router)
+    print("✅ Eight Queens routes loaded (original + simple gaming)")
+except ImportError as e:
+    print(f"⚠️  Eight Queens routes not found: {e}")
 
 # Snake Ladder routes (Member 1)
-from games.snake_ladder.api.snake_ladder_routes import router as snake_ladder_router
-app.include_router(snake_ladder_router, prefix="/api/snake-ladder", tags=["Snake Ladder"])
+try:
+    from games.snake_ladder.api.routes import router as snake_ladder_router
+    app.include_router(snake_ladder_router, prefix="/api/snake-ladder", tags=["Snake Ladder"])
+    print("✅ Snake Ladder routes loaded")
+except ImportError:
+    print("⚠️  Snake Ladder routes not implemented yet")
 
 # Traffic Simulation routes (Member 2)
-from games.traffic_simulation.api.traffic_routes import router as traffic_router
-app.include_router(traffic_router, prefix="/api/traffic", tags=["Traffic Simulation"])
+try:
+    from games.traffic_simulation.api.routes import router as traffic_router
+    app.include_router(traffic_router, prefix="/api/traffic", tags=["Traffic Simulation"])
+    print("✅ Traffic Simulation routes loaded")
+except ImportError:
+    print("⚠️  Traffic Simulation routes not implemented yet")
 
 # Traveling Salesman routes (Member 3)
-from games.traveling_salesman.api.tsp_routes import router as tsp_router
-app.include_router(tsp_router, prefix="/api/tsp", tags=["Traveling Salesman"])
+try:
+    from games.traveling_salesman.api.routes import router as tsp_router
+    app.include_router(tsp_router, prefix="/api/tsp", tags=["Traveling Salesman"])
+    print("✅ Traveling Salesman routes loaded")
+except ImportError:
+    print("⚠️  Traveling Salesman routes not implemented yet")
 
 # Tower of Hanoi routes (Member 4)
-from games.tower_hanoi.api.hanoi_routes import router as hanoi_router
-app.include_router(hanoi_router, prefix="/api/hanoi", tags=["Tower of Hanoi"])
-"""
+try:
+    from games.tower_hanoi.api.routes import router as hanoi_router
+    app.include_router(hanoi_router, prefix="/api/hanoi", tags=["Tower of Hanoi"])
+    print("✅ Tower of Hanoi routes loaded")
+except ImportError:
+    print("⚠️  Tower of Hanoi routes not implemented yet")
 
 if __name__ == "__main__":
     import uvicorn

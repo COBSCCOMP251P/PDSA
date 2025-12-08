@@ -1,0 +1,46 @@
+# Eight Queens Game - Database Requirements
+# Python dependencies for MySQL database integration
+
+# Core FastAPI and web framework
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# Database connectivity
+mysql-connector-python>=8.2.0
+SQLAlchemy>=2.0.23  # Optional: For advanced ORM features
+pymysql>=1.1.0      # Alternative MySQL driver
+
+# Environment and configuration
+python-dotenv>=1.0.0
+python-decouple>=3.8
+
+# Data validation and processing
+email-validator>=2.1.0
+python-multipart>=0.0.6
+
+# Performance and monitoring
+psutil>=5.9.6       # For memory/CPU usage tracking
+pandas>=2.1.4       # For data analysis (optional)
+
+# Development and testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+httpx>=0.25.2       # For testing API endpoints
+
+# Security (if implementing authentication)
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+
+# Logging and monitoring
+structlog>=23.2.0   # Structured logging
+rich>=13.7.0        # Better console output
+
+# Type checking and development tools
+mypy>=1.7.1
+black>=23.11.0
+isort>=5.12.0
+
+# Documentation
+mkdocs>=1.5.3       # For documentation generation
+mkdocs-material>=9.4.8

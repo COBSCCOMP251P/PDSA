@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eight Queens Puzzle - PDSA Project</title>
+    <link rel="stylesheet" href="styles.css?v=17">
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="screen welcome-screen" style="background-image: url('images/chess-bg.png'); background-size: cover; background-position: center;">
+        <div class="welcome-content">
+            <!-- Title Section -->
+            <div class="title-section">
+                <div class="crown-icon">♛</div>
+                <h1 class="game-title">
+                    <span class="title-line1">EIGHT</span>
+                    <span class="title-line2">QUEENS</span>
+                    <span class="title-line3">PUZZLE</span>
+                </h1>
+            </div>
+            
+            <!-- Description -->
+            <p class="main-tagline">Challenge your mind with the classic chess puzzle.</p>
+            <p class="sub-tagline">Place eight queens on an 8x8 board so that no two queens threaten each other.</p>
+            
+            <!-- Buttons -->
+            <div class="button-row">
+                <button class="main-btn green-btn" onclick="showNewPlayerForm()">
+                    New Player
+                </button>
+                <button class="main-btn blue-btn" onclick="showExistingPlayerForm()">
+                    Existing Player
+                </button>
+                <a href="instructions.html" class="main-btn orange-btn">
+                    How to Play
+                </a>
+            </div>
+            
+            <!-- Did You Know Box -->
+            <div class="info-card">
+                <div class="info-icon-box">
+                    <span class="lightbulb">💡</span>
+                </div>
+                <div class="info-text">
+                    <strong>Did you know?</strong>
+                    <p>There are 92 distinct solutions to the Eight Queens puzzle.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Player Screen -->
+    <div id="newPlayerScreen" class="screen hidden">
+        <div class="form-card">
+            <div class="form-header">
+                <span class="form-crown">♛</span>
+                <h2>Create Account</h2>
+                <p>Choose a unique username to get started</p>
+            </div>
+            <div class="form-body">
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="newPlayerUsername" placeholder="Enter username" maxlength="20" autocomplete="off">
+                    <span class="input-hint">3-20 characters, must be unique</span>
+                </div>
+                <div id="usernameError" class="error-box hidden"></div>
+                <div class="form-buttons">
+                    <button id="createPlayerBtn" class="form-btn primary-btn" onclick="createNewPlayer()">Create Account</button>
+                    <button class="form-btn secondary-btn" onclick="goBackToWelcome()">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Player Screen -->
+    <div id="existingPlayerScreen" class="screen hidden">
+        <div class="form-card">
+            <div class="form-header">
+                <span class="form-crown">♛</span>
+                <h2>Welcome Back</h2>
+                <p>Continue your puzzle journey!</p>
+            </div>
+            <div class="form-body">
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="existingPlayerUsername" placeholder="Enter your username">
+                </div>
+                <div id="playerNotFoundHelp" class="error-box hidden">
+                    Username not found. Please check spelling or create new account.
+                </div>
+                <div class="form-buttons">
+                    <button id="loginPlayerBtn" class="form-btn primary-btn" onclick="loginExistingPlayer()">Login</button>
+                    <button class="form-btn secondary-btn" onclick="goBackToWelcome()">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Difficulty Selection Screen -->
+    <div id="difficultyScreen" class="screen hidden">
+        <div class="diff-page">
+            <div class="diff-header-section">
+                <span class="diff-crown">♛</span>
+                <h2>Choose Difficulty</h2>
+            </div>
+            
+            <div class="diff-cards">
+                <div class="diff-card" data-difficulty="easy" onclick="selectDifficulty('easy')">
+                    <div class="diff-badge easy">Easy</div>
+                    <div class="diff-points">50 pts</div>
+                    <ul class="diff-features">
+                        <li>Unlimited hints</li>
+                        <li>Conflict highlighting</li>
+                        <li>2 queens pre-placed</li>
+                        <li>No time limit</li>
+                    </ul>
+                </div>
+                
+                <div class="diff-card" data-difficulty="medium" onclick="selectDifficulty('medium')">
+                    <div class="diff-badge medium">Medium</div>
+                    <div class="diff-points">100 pts</div>
+                    <ul class="diff-features">
+                        <li>3 hints available</li>
+                        <li>Basic conflict check</li>
+                        <li>Empty board start</li>
+                        <li>30 min time limit</li>
+                    </ul>
+                </div>
+                
+                <div class="diff-card" data-difficulty="hard" onclick="selectDifficulty('hard')">
+                    <div class="diff-badge hard">Hard</div>
+                    <div class="diff-points">200 pts</div>
+                    <ul class="diff-features">
+                        <li>Only 1 hint</li>
+                        <li>No help features</li>
+                        <li>No undo option</li>
+                        <li>10 min time limit</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="algo-section">
+                <div class="algo-label">Algorithm</div>
+                <div class="algo-toggle">
+                    <label class="algo-opt">
+                        <input type="radio" name="algorithm" value="sequential" checked>
+                        <span class="algo-btn">Sequential</span>
+                    </label>
+                    <label class="algo-opt">
+                        <input type="radio" name="algorithm" value="threaded">
+                        <span class="algo-btn">Parallel</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="diff-actions">
+                <button id="startGameBtn" class="game-start-btn" onclick="startSelectedGame()" disabled>Start Game</button>
+                <button class="game-back-btn" onclick="goBackToWelcome()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen hidden game-screen-light">
+        <!-- Theme Toggle -->
+        <button class="theme-toggle" onclick="toggleGameTheme()" title="Toggle Dark/Light Mode">
+            <span class="theme-icon">🌙</span>
+        </button>
+        
+        <div class="game-layout-v2">
+            <!-- Left Side - Info -->
+            <div class="game-sidebar">
+                <div class="player-section">
+                    <div class="player-avatar">👤</div>
+                    <div class="player-details">
+                        <span class="player-name-label">Player</span>
+                        <span id="playerDisplay" class="player-name-value">-</span>
+                    </div>
+                </div>
+                
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <span class="stat-icon-sm">⏱</span>
+                        <span class="stat-text">Time</span>
+                        <span id="gameTimer" class="stat-num time-num">00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon-sm">👑</span>
+                        <span class="stat-text">Queens</span>
+                        <span id="queensCount" class="stat-num">0/8</span>
+                    </div>
+                    <div class="stat-item conflict-item">
+                        <span class="stat-icon-sm">⚔</span>
+                        <span class="stat-text">Conflicts</span>
+                        <span id="conflictCount" class="stat-num conflict-num">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon-sm">📍</span>
+                        <span class="stat-text">Moves</span>
+                        <span id="moveCount" class="stat-num">0</span>
+                    </div>
+                </div>
+                
+                <div class="score-section">
+                    <span class="score-title">SCORE</span>
+                    <span id="currentScore" class="score-value">0</span>
+                </div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <span>Difficulty</span>
+                        <span id="difficultyDisplay">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Algorithm</span>
+                        <span id="algorithmDisplay">Sequential</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Hints Used</span>
+                        <span id="hintsUsed">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Undos Used</span>
+                        <span id="undosUsed">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Center - Board -->
+            <div class="board-section">
+                <div class="board-frame">
+                    <div class="board-top-labels">
+                        <span>a</span><span>b</span><span>c</span><span>d</span>
+                        <span>e</span><span>f</span><span>g</span><span>h</span>
+                    </div>
+                    <div class="board-main">
+                        <div class="board-left-labels">
+                            <span>8</span><span>7</span><span>6</span><span>5</span>
+                            <span>4</span><span>3</span><span>2</span><span>1</span>
+                        </div>
+                        <div id="chessBoard" class="chess-board-v2"></div>
+                    </div>
+                </div>
+                <div id="moveStatus" class="status-bar">
+                    Click on any square to place a queen
+                </div>
+            </div>
+            
+            <!-- Right Side - Actions -->
+            <div class="actions-sidebar">
+                <div class="actions-group">
+                    <button id="hintBtn" class="action-btn hint" onclick="getHint()">
+                        <span class="action-icon">💡</span>
+                        Hint
+                        <span id="hintCounter" class="action-count"></span>
+                    </button>
+                    <button id="undoBtn" class="action-btn undo" onclick="undoMove()">
+                        <span class="action-icon">↩</span>
+                        Undo
+                        <span id="undoCounter" class="action-count"></span>
+                    </button>
+                    <button class="action-btn reset" onclick="resetGame()">
+                        <span class="action-icon">⟲</span>
+                        Reset
+                    </button>
+                </div>
+                
+                <div class="actions-group main-actions">
+                    <button class="action-btn submit" onclick="submitSolution()">
+                        ✓ Submit Solution
+                    </button>
+                    <button class="action-btn exit" onclick="exitGame()">
+                        Exit Game
+                    </button>
+                </div>
+                
+                <div class="tips-section">
+                    <p>Click square to place queen</p>
+                    <p>Click queen to remove it</p>
+                    <p>8 queens, 0 conflicts = win!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Screen -->
+    <div id="successScreen" class="screen hidden">
+        <div class="result-card success">
+            <div class="result-icon">🎉</div>
+            <h2 id="successTitle">Congratulations!</h2>
+            <p id="successMessage">You found a valid solution to the Eight Queens puzzle!</p>
+            
+            <div id="solutionProgress" class="progress-box hidden">
+                <h4>Global Discovery Progress</h4>
+                <div class="progress-track"><div id="progressFill" class="progress-bar"></div></div>
+                <p><span id="foundCount">0</span> / <span id="totalCount">92</span> solutions discovered</p>
+            </div>
+            
+            <div class="result-stats">
+                <div class="rstat"><span class="rstat-label">Final Score</span><span id="finalScore" class="rstat-value">0</span></div>
+                <div class="rstat"><span class="rstat-label">Time Taken</span><span id="finalTime" class="rstat-value">00:00</span></div>
+                <div class="rstat"><span class="rstat-label">Hints Used</span><span id="finalHints" class="rstat-value">0</span></div>
+                <div class="rstat"><span class="rstat-label">Status</span><span id="discoveryStatus" class="rstat-value status-new">New!</span></div>
+            </div>
+            
+            <div class="result-buttons">
+                <button class="rbtn play-btn" onclick="playAgain()">🎮 Play Again</button>
+                <button class="rbtn menu-btn" onclick="goBackToWelcome()">🏠 Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duplicate Screen -->
+    <div id="duplicateScreen" class="screen hidden">
+        <div class="result-card duplicate">
+            <div class="result-icon">🔄</div>
+            <h2>Already Discovered!</h2>
+            <p>This solution was already found by <strong id="previousFinder">another player</strong>.</p>
+            <div class="tip-box">
+                <strong>💡 Tip:</strong> Try placing queens in different positions to discover a unique solution!
+            </div>
+            <div class="result-buttons">
+                <button class="rbtn play-btn" onclick="playAgain()">🔄 Try Again</button>
+                <button class="rbtn menu-btn" onclick="goBackToWelcome()">🏠 Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js?v=11"></script>
+</body>
+</html>

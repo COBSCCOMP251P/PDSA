@@ -27,22 +27,40 @@ CREATE TABLE IF NOT EXISTS GameSessions (
     INDEX idx_status (status)
 );
 
--- Eight Queens Results (Member 5)
+-- Eight Queens Solutions Master Table (All 92 solutions)
+CREATE TABLE IF NOT EXISTS EightQueensSolutions (
+    solution_id INT AUTO_INCREMENT PRIMARY KEY,
+    solution_array JSON NOT NULL, -- e.g., [0,4,7,5,2,6,1,3]
+    solution_hash VARCHAR(64) UNIQUE NOT NULL, -- MD5 hash for quick lookup
+    is_found BOOLEAN DEFAULT FALSE, -- Has any player found this solution?
+    found_by_player_id INT NULL, -- Which player found it
+    found_at TIMESTAMP NULL, -- When was it found
+    algorithm_used ENUM('sequential', 'threaded') DEFAULT 'sequential',
+    FOREIGN KEY (found_by_player_id) REFERENCES Players(player_id) ON DELETE SET NULL,
+    INDEX idx_solution_hash (solution_hash),
+    INDEX idx_is_found (is_found)
+);
+
+-- Eight Queens Player Submissions (Each player's attempts)
 CREATE TABLE IF NOT EXISTS EightQueensResults (
     result_id INT AUTO_INCREMENT PRIMARY KEY,
     session_id INT NOT NULL,
+    player_id INT NOT NULL,
     player_name VARCHAR(100) NOT NULL,
+    solution_id INT NULL, -- Links to the solution they found
+    solution_submitted JSON NOT NULL, -- What they submitted
     algorithm_type ENUM('sequential', 'threaded') NOT NULL,
-    solution_count INT NOT NULL,
-    solution_data JSON, -- Store actual solutions if needed
     execution_time_ms DECIMAL(10,3) NOT NULL,
-    memory_usage_mb DECIMAL(8,2),
     is_correct BOOLEAN NOT NULL,
-    is_duplicate BOOLEAN DEFAULT FALSE,
+    is_duplicate BOOLEAN DEFAULT FALSE, -- Was this solution already found?
+    previous_finder_name VARCHAR(100) NULL, -- Who found it before
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES GameSessions(session_id) ON DELETE CASCADE,
+    FOREIGN KEY (player_id) REFERENCES Players(player_id) ON DELETE CASCADE,
+    FOREIGN KEY (solution_id) REFERENCES EightQueensSolutions(solution_id) ON DELETE SET NULL,
     INDEX idx_algorithm_type (algorithm_type),
-    INDEX idx_execution_time (execution_time_ms)
+    INDEX idx_is_duplicate (is_duplicate),
+    INDEX idx_submitted_at (submitted_at)
 );
 
 -- Snake and Ladder Results (Member 1)

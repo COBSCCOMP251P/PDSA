@@ -1,4 +1,3 @@
-// PDSA Interactive Games - Main Application
 class PDSAApp {
     constructor() {
         this.apiBaseUrl = 'http://localhost:8000/api';
@@ -45,7 +44,7 @@ class PDSAApp {
         this.addEventListeners();
     }
 
-    // Check if backend is running
+    
     async checkBackendConnection() {
         try {
             const response = await fetch(`${this.apiBaseUrl}/health`);
@@ -63,7 +62,7 @@ class PDSAApp {
     }
 
     updateConnectionStatus(status) {
-        // Create connection indicator if it doesn't exist
+       
         let indicator = document.getElementById('connection-status');
         if (!indicator) {
             indicator = document.createElement('div');
@@ -83,7 +82,7 @@ class PDSAApp {
         }
     }
 
-    // Check which games are available
+    
     async checkGameAvailability() {
         for (let gameId in this.games) {
             try {
@@ -106,7 +105,7 @@ class PDSAApp {
         this.updateProgressBars();
     }
 
-    // Update game buttons based on availability
+    
     updateGameButtons() {
         for (let gameId in this.games) {
             const button = document.querySelector(`button[onclick="loadGame('${gameId}')"]`);
@@ -118,7 +117,7 @@ class PDSAApp {
         }
     }
 
-    // Update progress bars
+    
     updateProgressBars() {
         document.querySelectorAll('.progress-indicator').forEach((bar, index) => {
             const gameId = Object.keys(this.games)[index];
@@ -130,9 +129,9 @@ class PDSAApp {
         });
     }
 
-    // Add event listeners
+    
     addEventListeners() {
-        // Add smooth scrolling to anchor links
+       
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -143,7 +142,7 @@ class PDSAApp {
             });
         });
 
-        // Add keyboard shortcuts
+        
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
                 e.preventDefault();
@@ -154,7 +153,7 @@ class PDSAApp {
         });
     }
 
-    // Load a specific game
+    
     loadGame(gameId) {
         if (!this.games[gameId]) {
             console.error(`Game ${gameId} not found`);
@@ -168,14 +167,14 @@ class PDSAApp {
 
         console.log(`🎮 Loading ${this.games[gameId].name}...`);
         
-        // Show loading state
+       
         this.showNotification(`Loading ${this.games[gameId].name}...`, 'info');
         
-        // Navigate to game
+        
         window.location.href = this.games[gameId].path;
     }
 
-    // Show notification
+    
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg text-white font-medium z-50 ${this.getNotificationColor(type)}`;
@@ -183,7 +182,7 @@ class PDSAApp {
         
         document.body.appendChild(notification);
         
-        // Fade in
+        
         notification.style.opacity = '0';
         notification.style.transform = 'translate(-50%, -20px)';
         setTimeout(() => {
@@ -192,7 +191,7 @@ class PDSAApp {
             notification.style.transition = 'all 0.3s ease';
         }, 10);
         
-        // Fade out and remove
+        
         setTimeout(() => {
             notification.style.opacity = '0';
             notification.style.transform = 'translate(-50%, -20px)';
@@ -221,7 +220,7 @@ class PDSAApp {
     }
 }
 
-// Global functions for onclick handlers
+
 function loadGame(gameId) {
     window.pdsa.loadGame(gameId);
 }
@@ -256,19 +255,19 @@ function viewDocs() {
     
     document.body.appendChild(popup);
     
-    // Close on backdrop click
+    
     popup.addEventListener('click', (e) => {
         if (e.target === popup) popup.remove();
     });
 }
 
-// Initialize application when DOM is loaded
+
 document.addEventListener('DOMContentLoaded', () => {
     window.pdsa = new PDSAApp();
     console.log('🚀 PDSA Application Ready!');
 });
 
-// Service worker registration for PWA capabilities (optional)
+
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
