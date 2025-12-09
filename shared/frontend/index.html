@@ -3,161 +3,442 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDSA - Interactive Algorithm Games</title>
+    <title>Algorithm Games</title>
     <link href="css/tailwind.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body class="font-game bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen">
-    <!-- Header -->
-    <header class="text-white py-6">
-        <div class="container mx-auto px-6">
-            <h1 class="text-4xl font-bold text-center mb-2">PDSA Interactive Algorithm Games</h1>
-            <p class="text-center text-purple-200">University Assignment - Algorithm & Data Structures Collection</p>
-        </div>
-    </header>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-6 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        .carousel-container {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .carousel {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-card {
+            position: absolute;
+            width: 400px;
+            height: 580px;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-card.active {
+            z-index: 3;
+            transform: scale(1);
+            opacity: 1;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-card.prev {
+            z-index: 2;
+            transform: translateX(-180px) scale(0.85);
+            opacity: 0.7;
+        }
+
+        .game-card.next {
+            z-index: 2;
+            transform: translateX(180px) scale(0.85);
+            opacity: 0.7;
+        }
+
+        .game-card.hidden {
+            z-index: 1;
+            opacity: 0;
+            transform: scale(0.6);
+        }
+
+        .game-image {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            position: relative;
+        }
+
+        .game-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            pointer-events: none;
+        }
+
+        .game-content {
+            padding: 1.5rem;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            text-align: center;
+        }
+
+        .game-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 1.5rem;
+            right: 1.5rem;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        }
+
+        .game-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+            line-height: 1.2;
+        }
+
+        .game-description {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .play-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.75rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 160px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .play-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .play-button:hover::before {
+            left: 100%;
+        }
+
+        .play-button:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        }
+
+        .play-button:active {
+            transform: translateY(-1px) scale(0.98);
+            transition: all 0.1s ease;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            font-size: 1.2rem;
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .nav-button.prev {
+            left: 3rem;
+        }
+
+        .nav-button.next {
+            right: 3rem;
+        }
+
+        .indicators {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.75rem;
+            z-index: 100;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .indicator.active {
+            background: #4f46e5;
+            transform: scale(1.3);
+        }
+
+        @media (max-width: 768px) {
+            .game-card {
+                width: 350px;
+                height: 500px;
+            }
             
-            <!-- Eight Queens Game -->
-            <div class="game-card">
-                <div class="flex items-center mb-4">
-                    <div class="text-3xl mr-3">👑</div>
-                    <h2 class="game-title mb-0">Eight Queens Puzzle</h2>
+            .nav-button.prev {
+                left: 1rem;
+            }
+            
+            .nav-button.next {
+                right: 1rem;
+            }
+            
+            .game-content {
+                padding: 2rem;
+            }
+            
+            .game-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="carousel-container">
+        <div class="carousel">
+            
+            <button class="nav-button prev" onclick="prevSlide()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="nav-button next" onclick="nextSlide()">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+
+            
+            <div class="game-card active" data-index="0">
+                <div class="relative">
+                    <img src="images/eight queens.png" alt="Eight Queens" class="game-image">
+                    <div class="game-overlay"></div>
+                    <div class="absolute top-4 right-4">
+                        <div class="bg-black bg-opacity-50 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span class="text-white text-sm font-medium">1/5</span>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-gray-600 mb-4">Place 8 queens on a chessboard so none attack each other. Find all 92 solutions using sequential and multi-threaded algorithms.</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="algorithm-badge">Backtracking</span>
-                    <span class="algorithm-badge">Multi-threading</span>
+                <div class="game-content">
+                    <div>
+                        <h2 class="game-title">Eight Queens Problem</h2>
+                        <p class="game-description">
+                            Place 8 queens on a chessboard so that no two queens attack each other. A classic challenge in optimization and logic.
+                        </p>
+                    </div>
+                    <button class="play-button" onclick="window.location.href='/games/eight_queens/frontend/index.html'">
+                        <i class="fas fa-play"></i>
+                        <span>Play Game</span>
+                    </button>
                 </div>
-                <button onclick="loadGame('queens')" class="game-button w-full" disabled>
-                    Coming Soon
-                </button>
             </div>
 
-            <!-- Snake and Ladder Game -->
-            <div class="game-card">
-                <div class="flex items-center mb-4">
-                    <div class="text-3xl mr-3">🐍</div>
-                    <h2 class="game-title mb-0">Snake & Ladder</h2>
+            <div class="game-card next" data-index="1">
+                <div class="relative">
+                    <img src="images/Snake and Ladder.png" alt="Snake and Ladder" class="game-image">
+                    <div class="game-overlay"></div>
+                    <div class="absolute top-4 right-4">
+                        <div class="bg-black bg-opacity-50 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span class="text-white text-sm font-medium">2/5</span>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-gray-600 mb-4">Find the minimum number of dice throws to reach the end of a randomly generated Snake & Ladder board.</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="algorithm-badge">BFS</span>
-                    <span class="algorithm-badge">Dynamic Programming</span>
+                <div class="game-content">
+                    <div>
+                        <h2 class="game-title">Snake & Ladder</h2>
+                        <p class="game-description">
+                            Graph traversal and probability simulation game with classic board game mechanics.
+                        </p>
+                    </div>
+                    <button class="play-button" onclick="window.location.href='/games/snake_ladder/frontend/index.html'">
+                        <i class="fas fa-play"></i>
+                        <span>Play Game</span>
+                    </button>
                 </div>
-                <button onclick="loadGame('snake-ladder')" class="game-button w-full" disabled>
-                    Coming Soon
-                </button>
             </div>
 
-            <!-- Traffic Simulation -->
-            <div class="game-card">
-                <div class="flex items-center mb-4">
-                    <div class="text-3xl mr-3">🚦</div>
-                    <h2 class="game-title mb-0">Traffic Simulation</h2>
+            <div class="game-card hidden" data-index="2">
+                <div class="relative">
+                    <img src="images/Traffic simulation Problem.png" alt="Traffic Simulation" class="game-image">
+                    <div class="game-overlay"></div>
+                    <div class="absolute top-4 right-4">
+                        <div class="bg-black bg-opacity-50 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span class="text-white text-sm font-medium">3/5</span>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-gray-600 mb-4">Calculate maximum flow through a traffic network using graph algorithms and visualize the results.</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="algorithm-badge">Ford-Fulkerson</span>
-                    <span class="algorithm-badge">Edmonds-Karp</span>
+                <div class="game-content">
+                    <div>
+                        <h2 class="game-title">Traffic Simulation</h2>
+                        <p class="game-description">
+                            Real-time traffic flow optimization using advanced queue algorithms.
+                        </p>
+                    </div>
+                    <button class="play-button" onclick="window.location.href='/games/traffic_simulation/frontend/traffic.html'">
+                        <i class="fas fa-play"></i>
+                        <span>Play Game</span>
+                    </button>
                 </div>
-                <button onclick="loadGame('traffic')" class="game-button w-full" disabled>
-                    Coming Soon
-                </button>
             </div>
 
-            <!-- Traveling Salesman -->
-            <div class="game-card">
-                <div class="flex items-center mb-4">
-                    <div class="text-3xl mr-3">🗺️</div>
-                    <h2 class="game-title mb-0">Traveling Salesman</h2>
+            <div class="game-card hidden" data-index="3">
+                <div class="relative">
+                    <img src="images/Traveling Salesman Problem.png" alt="Traveling Salesman" class="game-image">
+                    <div class="game-overlay"></div>
+                    <div class="absolute top-4 right-4">
+                        <div class="bg-black bg-opacity-50 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span class="text-white text-sm font-medium">4/5</span>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-gray-600 mb-4">Find the shortest route visiting selected cities exactly once and return to the starting point.</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="algorithm-badge">Brute Force</span>
-                    <span class="algorithm-badge">Genetic Algorithm</span>
-                    <span class="algorithm-badge">Held-Karp</span>
+                <div class="game-content">
+                    <div>
+                        <h2 class="game-title">Traveling Salesman Problem</h2>
+                        <p class="game-description">
+                            Find the shortest possible route that visits each city and returns to the origin point.
+                        </p>
+                    </div>
+                    <button class="play-button" onclick="alert('Coming Soon! This game is not yet implemented.')">
+                        <i class="fas fa-play"></i>
+                        <span>Play Game</span>
+                    </button>
                 </div>
-                <button onclick="loadGame('tsp')" class="game-button w-full" disabled>
-                    Coming Soon
-                </button>
             </div>
 
-            <!-- Tower of Hanoi -->
-            <div class="game-card">
-                <div class="flex items-center mb-4">
-                    <div class="text-3xl mr-3">🗼</div>
-                    <h2 class="game-title mb-0">Tower of Hanoi</h2>
+            <div class="game-card hidden" data-index="4">
+                <div class="relative">
+                    <img src="images/Tower of Hanoi.png" alt="Tower of Hanoi" class="game-image">
+                    <div class="game-overlay"></div>
+                    <div class="absolute top-4 right-4">
+                        <div class="bg-black bg-opacity-50 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span class="text-white text-sm font-medium">5/5</span>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-gray-600 mb-4">Solve the classic Tower of Hanoi puzzle with 3 or 4 pegs using different algorithmic approaches.</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="algorithm-badge">Recursive</span>
-                    <span class="algorithm-badge">Iterative</span>
-                    <span class="algorithm-badge">Frame-Stewart</span>
+                <div class="game-content">
+                    <div>
+                        <h2 class="game-title">Tower of Hanoi</h2>
+                        <p class="game-description">
+                            Move disks between towers following specific rules in this classic recursive puzzle.
+                        </p>
+                    </div>
+                    <button class="play-button" onclick="window.location.href='/games/tower_hanoi/frontend/index.html'">
+                        <i class="fas fa-play"></i>
+                        <span>Play Game</span>
+                    </button>
                 </div>
-                <button onclick="loadGame('hanoi')" class="game-button w-full" disabled>
-                    Coming Soon
-                </button>
             </div>
 
-            <!-- Performance Dashboard -->
-            <div class="game-card">
-                <div class="flex items-center mb-4">
-                    <div class="text-3xl mr-3">📊</div>
-                    <h2 class="game-title mb-0">Performance Dashboard</h2>
-                </div>
-                <p class="text-gray-600 mb-4">View algorithm performance comparisons, execution times, and complexity analysis across all games.</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="algorithm-badge">Analytics</span>
-                    <span class="algorithm-badge">Benchmarks</span>
-                </div>
-                <button onclick="loadDashboard()" class="game-button w-full" disabled>
-                    Coming Soon
-                </button>
+            
+            <div class="indicators">
+                <div class="indicator active" onclick="goToSlide(0)"></div>
+                <div class="indicator" onclick="goToSlide(1)"></div>
+                <div class="indicator" onclick="goToSlide(2)"></div>
+                <div class="indicator" onclick="goToSlide(3)"></div>
+                <div class="indicator" onclick="goToSlide(4)"></div>
             </div>
         </div>
+    </div>
 
-        <!-- Team Information -->
-        <div class="mt-12 bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
-            <h3 class="text-xl font-bold mb-4 text-center">Development Team</h3>
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
-                <div>
-                    <div class="text-2xl mb-2">👑</div>
-                    <p class="font-semibold">Member 5</p>
-                    <p class="text-sm text-purple-200">Eight Queens</p>
-                </div>
-                <div>
-                    <div class="text-2xl mb-2">🐍</div>
-                    <p class="font-semibold">Member 1</p>
-                    <p class="text-sm text-purple-200">Snake & Ladder</p>
-                </div>
-                <div>
-                    <div class="text-2xl mb-2">🚦</div>
-                    <p class="font-semibold">Member 2</p>
-                    <p class="text-sm text-purple-200">Traffic Simulation</p>
-                </div>
-                <div>
-                    <div class="text-2xl mb-2">🗺️</div>
-                    <p class="font-semibold">Member 3</p>
-                    <p class="text-sm text-purple-200">Traveling Salesman</p>
-                </div>
-                <div>
-                    <div class="text-2xl mb-2">🗼</div>
-                    <p class="font-semibold">Member 4</p>
-                    <p class="text-sm text-purple-200">Tower of Hanoi</p>
-                </div>
-            </div>
-        </div>
-    </main>
+    <script>
+        let currentSlide = 0;
+        const cards = document.querySelectorAll('.game-card');
+        const indicators = document.querySelectorAll('.indicator');
+        const totalSlides = cards.length;
 
-    <!-- Footer -->
-    <footer class="text-white text-center py-6 mt-12">
-        <p class="text-purple-200">&copy; 2025 PDSA Team - University Assignment</p>
-        <p class="text-sm text-purple-300 mt-2">Algorithm & Data Structures Interactive Game Collection</p>
-    </footer>
+        function updateCarousel() {
+            cards.forEach((card, index) => {
+                card.className = 'game-card';
+                
+                if (index === currentSlide) {
+                    card.classList.add('active');
+                } else if (index === (currentSlide - 1 + totalSlides) % totalSlides) {
+                    card.classList.add('prev');
+                } else if (index === (currentSlide + 1) % totalSlides) {
+                    card.classList.add('next');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
 
-    <script src="js/main.js"></script>
+            indicators.forEach((indicator, index) => {
+                indicator.classList.toggle('active', index === currentSlide);
+            });
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateCarousel();
+        }
+
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            updateCarousel();
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            updateCarousel();
+        }
+
+
+        updateCarousel();
+    </script>
 </body>
 </html>
