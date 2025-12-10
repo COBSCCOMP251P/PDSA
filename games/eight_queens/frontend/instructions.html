@@ -30,20 +30,35 @@
         /* Navigation */
         nav {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             margin-bottom: 50px;
         }
 
-        nav a {
-            color: #64748b;
-            text-decoration: none;
+        .back-btn {
+            display: inline-block;
+            padding: 12px 28px;
             font-size: 14px;
-            transition: color 0.2s;
+            font-weight: 500;
+            color: #ffffff;
+            text-decoration: none;
+            background: linear-gradient(180deg, #475569 0%, #334155 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #1e293b, 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.15s;
         }
 
-        nav a:hover {
-            color: #94a3b8;
+        .back-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #1e293b, 0 3px 10px rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+        }
+
+        .back-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #1e293b, 0 0 5px rgba(0, 0, 0, 0.3);
         }
 
         /* Title */
@@ -237,38 +252,12 @@
         @media (max-width: 500px) {
             .two-col { grid-template-columns: 1fr; gap: 24px; }
         }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            margin-top: 60px;
-            padding-top: 40px;
-            border-top: 1px solid #1e293b;
-        }
-
-        .play-btn {
-            display: inline-block;
-            padding: 14px 40px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #fff;
-            text-decoration: none;
-            background: linear-gradient(180deg, #1a3a5c 0%, #0f2540 100%);
-            border-radius: 50px;
-            box-shadow: 0 6px 0 #081525, 0 6px 20px rgba(0,0,0,0.4);
-            transition: all 0.2s;
-        }
-
-        .play-btn:hover {
-            transform: translateY(3px);
-            box-shadow: 0 3px 0 #081525, 0 3px 15px rgba(0,0,0,0.4);
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <nav>
-            <a href="index.html">← Back to game</a>
+            <a href="index.html" class="back-btn">← Back to Game</a>
         </nav>
 
         <h1>How to Play</h1>
@@ -403,10 +392,6 @@
                 <li>Discovery bonus: +50 for finding a new unique solution</li>
             </ul>
         </section>
-
-        <footer class="footer">
-            <a href="index.html" class="play-btn">Start Playing</a>
-        </footer>
     </div>
 
     <script>

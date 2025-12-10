@@ -78,6 +78,22 @@ CREATE TABLE discovered_solutions (
 );
 
 -- =============================================
+-- ALGORITHM COMPARISONS TABLE (NEW)
+-- Track BOTH algorithm timings for each game round
+-- Required for PDSA: 15 Game Rounds timing chart
+-- =============================================
+CREATE TABLE IF NOT EXISTS algorithm_comparisons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sequential_time_ms DECIMAL(10,3) NOT NULL,
+    threaded_time_ms DECIMAL(10,3) NOT NULL,
+    speedup_factor DECIMAL(5,2),
+    solutions_count INT DEFAULT 92,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_created_at (created_at)
+);
+
+-- =============================================
 -- 4. GAME_SESSIONS TABLE
 -- Record individual game rounds and performance data
 -- Required for coursework: "record time taken for each algorithm"
@@ -89,9 +105,12 @@ CREATE TABLE game_sessions (
     session_end TIMESTAMP NULL,
     algorithm_type ENUM('sequential', 'threaded') NOT NULL,
     
-    -- Performance metrics
+    -- Performance metrics - BOTH algorithms (PDSA Requirement)
     total_solutions_found INT DEFAULT 0,
     execution_time_ms DECIMAL(10,3) NOT NULL,
+    sequential_time_ms DECIMAL(10,3) NULL,      -- Time for sequential algorithm
+    threaded_time_ms DECIMAL(10,3) NULL,        -- Time for threaded algorithm  
+    speedup_factor DECIMAL(5,2) NULL,           -- Speedup ratio (sequential/threaded)
     memory_usage_mb DECIMAL(8,2), -- Optional: memory usage tracking
     cpu_usage_percent DECIMAL(5,2), -- Optional: CPU usage tracking
     

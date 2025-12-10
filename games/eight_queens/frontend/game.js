@@ -26,7 +26,29 @@ const API_BASE = '/api/eight-queens-game';
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Eight Queens Game loaded');
     setupDifficultyCards();
+    
+    // Check if returning from stats page
+    if (localStorage.getItem('returnToDifficulty') === 'true') {
+        localStorage.removeItem('returnToDifficulty');
+        // Restore player info from localStorage
+        const savedPlayerName = localStorage.getItem('playerName');
+        const savedPlayerId = localStorage.getItem('playerId');
+        if (savedPlayerName) {
+            gameState.playerName = savedPlayerName;
+            gameState.playerId = savedPlayerId;
+        }
+        showDifficultyScreen();
+    }
 });
+
+// Show difficulty screen directly
+function showDifficultyScreen() {
+    document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('newPlayerScreen')?.classList.add('hidden');
+    document.getElementById('existingPlayerScreen')?.classList.add('hidden');
+    document.getElementById('difficultyScreen').classList.remove('hidden');
+    document.getElementById('gameScreen').classList.add('hidden');
+}
 
 // =============================================
 // THEME TOGGLE
@@ -158,6 +180,10 @@ async function createNewPlayer() {
             gameState.playerName = username;
             gameState.isAuthenticated = true;
             
+            // Save to localStorage for stats page
+            localStorage.setItem('playerName', username);
+            localStorage.setItem('playerId', result.data.player_id);
+            
             showDifficultySelection();
         } else {
             showUsernameError(result.detail || 'Failed to create account. Please try again.');
@@ -208,6 +234,10 @@ async function loginExistingPlayer() {
             gameState.playerName = playerInfo.name;
             gameState.playerEmail = playerInfo.email || '';
             gameState.isAuthenticated = true;
+            
+            // Save to localStorage for stats page
+            localStorage.setItem('playerName', playerInfo.name);
+            localStorage.setItem('playerId', playerInfo.id);
             
             alert(`Welcome back, ${playerInfo.name}!`);
             showDifficultySelection();
@@ -376,9 +406,12 @@ function createChessBoard() {
             if (gameState.board[row] === col) {
                 cell.innerHTML = '<span class="queen">♛</span>';
                 
-                // Mark pre-placed queens
-                if (gameState.selectedDifficulty === 'easy' && row < 2) {
-                    cell.classList.add('pre-placed');
+                // Mark pre-placed queens in Easy mode (locked, can't remove)
+                if (gameState.selectedDifficulty === 'easy') {
+                    if ((row === 0 && col === 0) || (row === 1 && col === 2)) {
+                        cell.classList.add('pre-placed');
+                        cell.title = 'Pre-placed queen (locked)';
+                    }
                 }
             }
             
@@ -395,6 +428,16 @@ function createChessBoard() {
 async function makeMove(row, col) {
     try {
         const action = gameState.board[row] === col ? 'remove' : 'place';
+        
+        // Prevent removing pre-placed queens in Easy mode
+        if (gameState.selectedDifficulty === 'easy' && action === 'remove') {
+            // Check if this is a pre-placed queen (row 0 or 1 in original positions)
+            if ((row === 0 && col === 0) || (row === 1 && col === 2)) {
+                document.getElementById('moveStatus').textContent = '⚠️ Cannot remove pre-placed queens!';
+                document.getElementById('moveStatus').style.color = '#f59e0b';
+                return;
+            }
+        }
         
         const response = await fetch(`${API_BASE}/game/move`, {
             method: 'POST',
@@ -519,6 +562,12 @@ function displayHint(hint) {
 }
 
 function undoMove() {
+    // Hard mode - no undo allowed
+    if (gameState.selectedDifficulty === 'hard') {
+        alert('Undo is not available in Hard mode!');
+        return;
+    }
+    
     if (gameState.moveHistory.length === 0) {
         alert('No moves to undo');
         return;
@@ -530,6 +579,14 @@ function undoMove() {
     }
     
     const lastMove = gameState.moveHistory.pop();
+    
+    // Prevent undoing pre-placed queens in Easy mode
+    if (gameState.selectedDifficulty === 'easy' && lastMove.row < 2 && lastMove.action === 'remove') {
+        // This was an undo of a pre-placed queen removal, don't allow
+        gameState.moveHistory.push(lastMove); // Put it back
+        alert('Cannot undo pre-placed queens!');
+        return;
+    }
     
     if (lastMove.action === 'place') {
         gameState.board[lastMove.row] = -1;
@@ -713,6 +770,19 @@ function showSuccessScreen(submissionData) {
     document.getElementById('finalScore').textContent = submissionData.score;
     document.getElementById('finalTime').textContent = formatTime(submissionData.completion_time);
     document.getElementById('finalHints').textContent = submissionData.hints_used;
+    
+    // Display Algorithm Comparison (PDSA Requirement)
+    if (submissionData.algorithm_comparison) {
+        const compSection = document.getElementById('algorithmComparison');
+        compSection.classList.remove('hidden');
+        
+        document.getElementById('seqTimeDisplay').textContent = 
+            submissionData.algorithm_comparison.sequential_time_ms.toFixed(3) + ' ms';
+        document.getElementById('threadTimeDisplay').textContent = 
+            submissionData.algorithm_comparison.threaded_time_ms.toFixed(3) + ' ms';
+        document.getElementById('speedupDisplay').textContent = 
+            submissionData.algorithm_comparison.speedup;
+    }
 }
 
 function showDuplicateScreen(result) {
@@ -820,9 +890,36 @@ function startGameTimer() {
         
         if (gameState.gameSettings.time_limit_seconds && elapsed >= gameState.gameSettings.time_limit_seconds) {
             clearInterval(gameState.timer);
-            alert("Time's up!");
+            handleTimeUp();
         }
     }, 1000);
+}
+
+function handleTimeUp() {
+    // Disable all game interactions
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.style.pointerEvents = 'none';
+        cell.style.opacity = '0.7';
+    });
+    document.getElementById('hintBtn').disabled = true;
+    document.getElementById('undoBtn').disabled = true;
+    document.getElementById('submitBtn').disabled = true;
+    
+    // Show time up message
+    const statusMsg = document.getElementById('statusMessage');
+    if (statusMsg) {
+        statusMsg.textContent = "⏰ Time's up! Game over.";
+        statusMsg.style.color = '#ef4444';
+    }
+    
+    // Show alert with options
+    setTimeout(() => {
+        if (confirm("Time's up! Your game has ended.\n\nWould you like to try again?")) {
+            playAgain();
+        } else {
+            exitGame();
+        }
+    }, 500);
 }
 
 function updateGameStats() {

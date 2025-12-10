@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eight Queens Puzzle - PDSA Project</title>
-    <link rel="stylesheet" href="styles.css?v=17">
+    <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
     <!-- Welcome Screen -->
     <div id="welcomeScreen" class="screen welcome-screen" style="background-image: url('images/chess-bg.png'); background-size: cover; background-position: center;">
+        <!-- Back to Game Menu Button (Top Left - Only on Welcome Screen) -->
+        <a href="/shared/index.html" class="menu-back-btn" title="Back to Game Menu">
+            ← Menu
+        </a>
+        
         <div class="welcome-content">
             <!-- Title Section -->
             <div class="title-section">
@@ -156,6 +161,7 @@
             
             <div class="diff-actions">
                 <button id="startGameBtn" class="game-start-btn" onclick="startSelectedGame()" disabled>Start Game</button>
+                <a href="stats.html" class="game-stats-btn">My Stats</a>
                 <button class="game-back-btn" onclick="goBackToWelcome()">Back</button>
             </div>
         </div>
@@ -297,6 +303,24 @@
                 <p><span id="foundCount">0</span> / <span id="totalCount">92</span> solutions discovered</p>
             </div>
             
+            <!-- Algorithm Comparison Section (PDSA Requirement) -->
+            <div id="algorithmComparison" class="comparison-box hidden">
+                <h4>⚡ Algorithm Performance Comparison</h4>
+                <div class="comparison-grid">
+                    <div class="algo-stat">
+                        <span class="algo-label">Sequential</span>
+                        <span id="seqTimeDisplay" class="algo-time">0.000 ms</span>
+                    </div>
+                    <div class="algo-stat">
+                        <span class="algo-label">Threaded</span>
+                        <span id="threadTimeDisplay" class="algo-time">0.000 ms</span>
+                    </div>
+                </div>
+                <div class="speedup-display">
+                    <span>🚀 Speedup: <strong id="speedupDisplay">1.00x</strong></span>
+                </div>
+            </div>
+            
             <div class="result-stats">
                 <div class="rstat"><span class="rstat-label">Final Score</span><span id="finalScore" class="rstat-value">0</span></div>
                 <div class="rstat"><span class="rstat-label">Time Taken</span><span id="finalTime" class="rstat-value">00:00</span></div>
@@ -306,6 +330,7 @@
             
             <div class="result-buttons">
                 <button class="rbtn play-btn" onclick="playAgain()">🎮 Play Again</button>
+                <a href="stats.html" class="rbtn stats-btn">📊 View Stats</a>
                 <button class="rbtn menu-btn" onclick="goBackToWelcome()">🏠 Main Menu</button>
             </div>
         </div>

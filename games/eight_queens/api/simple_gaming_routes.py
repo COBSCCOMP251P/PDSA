@@ -676,6 +676,23 @@ async def submit_solution(submission: SolutionSubmission):
         connection.close()
         raise HTTPException(status_code=500, detail="Error processing solution")
     
+    # === RUN BOTH ALGORITHMS FOR TIMING COMPARISON (PDSA Requirement) ===
+    import time as time_module
+    
+    # Sequential timing
+    seq_start = time_module.perf_counter()
+    _ = sequential_solver.solve_all()
+    sequential_time_ms = (time_module.perf_counter() - seq_start) * 1000
+    
+    # Threaded timing
+    thread_start = time_module.perf_counter()
+    _ = threaded_solver.solve_all()
+    threaded_time_ms = (time_module.perf_counter() - thread_start) * 1000
+    
+    speedup_factor = sequential_time_ms / threaded_time_ms if threaded_time_ms > 0 else 1
+    
+    logger.info(f"Algorithm timing - Sequential: {sequential_time_ms:.3f}ms, Threaded: {threaded_time_ms:.3f}ms, Speedup: {speedup_factor:.2f}x")
+    
     # Calculate score
     completion_time = completion_time_seconds if completion_time_seconds > 0 else (time.time() - session["start_time"])
     base_score = session["settings"]["base_score"]
@@ -717,7 +734,10 @@ async def submit_solution(submission: SolutionSubmission):
                 score = %s,
                 hints_used = %s,
                 undo_count = %s,
-                completion_time_seconds = %s
+                completion_time_seconds = %s,
+                sequential_time_ms = %s,
+                threaded_time_ms = %s,
+                speedup_factor = %s
             WHERE id = %s
         """, (
             json.dumps(board),
@@ -725,6 +745,9 @@ async def submit_solution(submission: SolutionSubmission):
             session["hints_used"],
             session["undos_used"],
             int(completion_time),
+            round(sequential_time_ms, 3),
+            round(threaded_time_ms, 3),
+            round(speedup_factor, 2),
             session["id"]
         ))
         
@@ -765,9 +788,121 @@ async def submit_solution(submission: SolutionSubmission):
             "all_found": all_solutions_found,
             "solutions_found": solutions_found,
             "total_solutions": total_solutions,
-            "progress_percentage": round((solutions_found / total_solutions) * 100, 1)
+            "progress_percentage": round((solutions_found / total_solutions) * 100, 1),
+            "algorithm_comparison": {
+                "sequential_time_ms": round(sequential_time_ms, 3),
+                "threaded_time_ms": round(threaded_time_ms, 3),
+                "speedup": f"{speedup_factor:.2f}x",
+                "faster_algorithm": "threaded" if speedup_factor > 1 else "sequential"
+            }
         }
     }
+
+@router.post("/algorithms/compare")
+async def compare_algorithms():
+    """
+    Run BOTH Sequential and Threaded solvers and return timing comparison.
+    This satisfies the PDSA requirement to record time for BOTH algorithms per game round.
+    """
+    import time as time_module
+    
+    # Run Sequential Solver
+    seq_start = time_module.perf_counter()
+    seq_solutions = sequential_solver.solve_all()
+    seq_time_ms = (time_module.perf_counter() - seq_start) * 1000
+    
+    # Run Threaded Solver
+    thread_start = time_module.perf_counter()
+    thread_solutions = threaded_solver.solve_all()
+    thread_time_ms = (time_module.perf_counter() - thread_start) * 1000
+    
+    # Calculate speedup
+    speedup = seq_time_ms / thread_time_ms if thread_time_ms > 0 else 1
+    time_saved = seq_time_ms - thread_time_ms
+    
+    # Save to database for the 15-round chart requirement
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO algorithm_comparisons 
+            (sequential_time_ms, threaded_time_ms, speedup_factor, solutions_count, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+        """, (round(seq_time_ms, 3), round(thread_time_ms, 3), round(speedup, 2), len(seq_solutions)))
+        cursor.close()
+        connection.close()
+        logger.info(f"Algorithm comparison saved: Seq={seq_time_ms:.3f}ms, Thread={thread_time_ms:.3f}ms")
+    except Exception as e:
+        logger.warning(f"Could not save comparison to DB: {e}")
+    
+    return {
+        "status": "success",
+        "data": {
+            "sequential": {
+                "time_ms": round(seq_time_ms, 3),
+                "solutions_found": len(seq_solutions)
+            },
+            "threaded": {
+                "time_ms": round(thread_time_ms, 3),
+                "solutions_found": len(thread_solutions)
+            },
+            "comparison": {
+                "speedup": f"{speedup:.2f}x",
+                "faster_algorithm": "threaded" if speedup > 1 else "sequential",
+                "time_saved_ms": round(time_saved, 3),
+                "improvement_percent": round((1 - (1/speedup)) * 100, 1) if speedup > 0 else 0
+            }
+        }
+    }
+
+
+@router.get("/algorithms/history")
+async def get_algorithm_comparison_history():
+    """
+    Get the last 15 algorithm comparison runs for the Individual Report chart.
+    """
+    connection = get_db_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id as round_number, sequential_time_ms, threaded_time_ms, 
+                   speedup_factor, solutions_count, created_at
+            FROM algorithm_comparisons
+            ORDER BY created_at DESC
+            LIMIT 15
+        """)
+        comparisons = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        
+        # Calculate statistics
+        if comparisons:
+            seq_times = [c['sequential_time_ms'] for c in comparisons if c['sequential_time_ms']]
+            thread_times = [c['threaded_time_ms'] for c in comparisons if c['threaded_time_ms']]
+            
+            stats = {
+                "total_rounds": len(comparisons),
+                "avg_sequential_ms": round(sum(seq_times) / len(seq_times), 3) if seq_times else 0,
+                "avg_threaded_ms": round(sum(thread_times) / len(thread_times), 3) if thread_times else 0,
+                "avg_speedup": round(sum(seq_times) / sum(thread_times), 2) if thread_times and sum(thread_times) > 0 else 1
+            }
+        else:
+            stats = {"total_rounds": 0}
+        
+        return {
+            "status": "success",
+            "data": {
+                "comparisons": comparisons,
+                "statistics": stats
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting comparison history: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        if connection:
+            connection.close()
+
 
 @router.get("/solutions/progress")
 async def get_solutions_progress():
@@ -1024,6 +1159,9 @@ async def get_player_profile(player_name: str):
                     "name": player['name'],
                     "created_at": player['created_at'].timestamp() if player['created_at'] else None
                 },
+                "total_games_played": total_games,
+                "solutions_found": player.get('total_solutions_found', 0),
+                "highest_score": player.get('highest_score', 0),
                 "difficulty_stats": difficulty_stats,
                 "total_games": total_games,
                 "recent_activity": []
@@ -1035,6 +1173,59 @@ async def get_player_profile(player_name: str):
     except Exception as e:
         logger.error(f"Get player profile error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve player profile")
+
+
+@router.get("/players/{player_name}/solutions")
+async def get_player_solutions(player_name: str):
+    """Get all solutions discovered by a specific player"""
+    try:
+        connection = get_db_connection()
+        try:
+            cursor = connection.cursor(dictionary=True)
+            
+            # Find player
+            cursor.execute("SELECT id FROM players WHERE LOWER(name) = LOWER(%s)", (player_name,))
+            player = cursor.fetchone()
+            
+            if not player:
+                return {"status": "error", "message": "Player not found", "data": {"solutions": []}}
+            
+            # Get solutions found by this player
+            cursor.execute("""
+                SELECT eq.solution_id, eq.solution_hash, eq.found_at,
+                       s.solution_array, s.solution_number
+                FROM EightQueensSolutions eq
+                LEFT JOIN solutions s ON eq.solution_id = s.id
+                WHERE eq.found_by_player_id = %s AND eq.is_found = TRUE
+                ORDER BY eq.found_at DESC
+            """, (player['id'],))
+            solutions = cursor.fetchall()
+            
+            # Format solutions for response
+            formatted_solutions = []
+            for sol in solutions:
+                formatted_solutions.append({
+                    "solution_number": sol.get('solution_number') or sol.get('solution_id'),
+                    "solution_array": sol.get('solution_array') or sol.get('solution_hash', 'N/A'),
+                    "found_at": sol['found_at'].isoformat() if sol.get('found_at') else None
+                })
+            
+            return {
+                "status": "success",
+                "data": {
+                    "player_name": player_name,
+                    "solutions": formatted_solutions,
+                    "total_found": len(formatted_solutions)
+                }
+            }
+        finally:
+            cursor.close()
+            connection.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting player solutions: {e}")
+        return {"status": "error", "message": str(e), "data": {"solutions": []}}
+
 
 @router.get("/players/check/{player_name}")
 async def check_player_exists(player_name: str):
