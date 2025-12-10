@@ -240,6 +240,25 @@ body {
 }
 
 .purple-btn {
+    background: linear-gradient(180deg, #7c3aed 0%, #5b21b6 100%);
+    box-shadow: 
+        0 6px 0 #3b0f7a,
+        0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.purple-btn:hover {
+    box-shadow: 
+        0 3px 0 #3b0f7a,
+        0 3px 15px rgba(0, 0, 0, 0.4);
+}
+
+.purple-btn:active {
+    box-shadow: 
+        0 0 0 #3b0f7a,
+        0 0 10px rgba(0, 0, 0, 0.4);
+}
+
+.purple-btn {
     background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
     box-shadow: 
         0 6px 0 #4c1d95,
@@ -2149,8 +2168,26 @@ body {
 
 .result-buttons {
     display: flex;
-    gap: 14px;
+    gap: 12px;
     justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Smaller buttons for result screens */
+.result-buttons .main-btn {
+    padding: 10px 20px;
+    font-size: 13px;
+    min-width: 110px;
+    box-shadow: 
+        0 4px 0 rgba(0, 0, 0, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.result-buttons .main-btn:hover {
+    transform: translateY(2px);
+    box-shadow: 
+        0 2px 0 rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .rbtn {

@@ -245,7 +245,7 @@ def recover_session_from_db(session_id: int) -> Optional[Dict[str, Any]]:
                 "difficulty": difficulty,
                 "algorithm_type": db_session.get('algorithm_type', 'sequential'),
                 "settings": settings,
-                "board": json.loads(db_session['current_board']) if db_session['current_board'] else [-1]*8,
+                "board": [-1]*8,  # Always start fresh - board state not persisted
                 "start_time": time.time() - (db_session.get('completion_time_seconds') or 0),
                 "hints_used": db_session.get('hints_used', 0) or 0,
                 "undos_used": db_session.get('undo_count', 0) or 0,
@@ -305,10 +305,8 @@ def create_starting_board(difficulty: str) -> List[int]:
     """Create a starting board based on difficulty"""
     board = [-1] * 8
     
-    if difficulty == "easy":
-        # Pre-place two queens in safe positions for easy mode
-        board[0] = 0  # Queen at (0, 0)
-        board[1] = 2  # Queen at (1, 2)
+    # All difficulty levels start with empty board
+    # Easy mode just has hints and undo features enabled
     
     return board
 
@@ -332,13 +330,11 @@ async def start_new_game(game_start: GameStart):
         
         # Create game session in database
         starting_board = create_starting_board(game_start.difficulty)
-        board_json = json.dumps(starting_board)
         insert_query = """
-            INSERT INTO game_sessions (player_id, difficulty, algorithm_type, 
-                                     execution_time_ms, status, initial_board, current_board)
-            VALUES (%s, %s, %s, 0, %s, %s, %s)
+            INSERT INTO game_sessions (player_id, difficulty, algorithm_type, status)
+            VALUES (%s, %s, %s, %s)
         """
-        cursor.execute(insert_query, (player['id'], game_start.difficulty, game_start.algorithm_type, 'in_progress', board_json, board_json))
+        cursor.execute(insert_query, (player['id'], game_start.difficulty, game_start.algorithm_type, 'in_progress'))
         session_id = cursor.lastrowid
     finally:
         connection.close()
@@ -608,16 +604,49 @@ async def submit_solution(submission: SolutionSubmission):
             previous_finder = cursor.fetchone()
             previous_finder_name = previous_finder['name'] if previous_finder else "Another player"
             
+            # Calculate completion time and score for duplicate
+            completion_time_dup = time.time() - session["start_time"]
+            hints_used_dup = session.get("hints_used", 0)
+            undos_used_dup = session.get("undos_used", 0)
+            
+            # Calculate score (lower for duplicate)
+            base_score = 50
+            time_bonus = max(0, 300 - int(completion_time_dup))
+            hint_penalty = hints_used_dup * 10
+            undo_penalty = undos_used_dup * 5
+            duplicate_penalty = 50  # Extra penalty for duplicate
+            score_dup = max(0, base_score + time_bonus - hint_penalty - undo_penalty - duplicate_penalty)
+            
             # Still save as duplicate submission
             cursor.execute("""
                 INSERT INTO EightQueensResults 
                 (session_id, player_id, player_name, solution_submitted, 
-                 algorithm_type, execution_time_ms, is_correct, is_duplicate, previous_finder_name)
-                VALUES (%s, %s, %s, %s, %s, %s, TRUE, TRUE, %s)
+                 is_correct, is_duplicate, previous_finder_name)
+                VALUES (%s, %s, %s, %s, TRUE, TRUE, %s)
             """, (
                 session["id"], session["player_id"], session["player_name"],
-                json.dumps(board), session.get("algorithm_type", "sequential"),
-                completion_time_seconds * 1000, previous_finder_name
+                json.dumps(board), previous_finder_name
+            ))
+            
+            # Mark game session as completed with all data (duplicate solution = loss)
+            cursor.execute("""
+                UPDATE game_sessions 
+                SET status = 'completed', 
+                    is_completed = 1,
+                    result = 'loss',
+                    solution_type = 'duplicate',
+                    session_end = NOW(),
+                    score = %s,
+                    hints_used = %s,
+                    undo_count = %s,
+                    completion_time_seconds = %s
+                WHERE id = %s
+            """, (
+                int(score_dup),
+                hints_used_dup,
+                undos_used_dup,
+                int(completion_time_dup),
+                session["id"]
             ))
             
             cursor.close()
@@ -714,23 +743,21 @@ async def submit_solution(submission: SolutionSubmission):
         cursor.execute("""
             INSERT INTO EightQueensResults 
             (session_id, player_id, player_name, solution_id, solution_submitted, 
-             algorithm_type, execution_time_ms, is_correct, is_duplicate)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, FALSE)
+             is_correct, is_duplicate)
+            VALUES (%s, %s, %s, %s, %s, TRUE, FALSE)
         """, (
             session["id"], session["player_id"], session["player_name"],
-            solution_record['solution_id'], json.dumps(board),
-            session.get("algorithm_type", "sequential"),
-            completion_time * 1000
+            solution_record['solution_id'], json.dumps(board)
         ))
         
-        # Update game session as completed
+        # Update game session as completed with WIN
         cursor.execute("""
             UPDATE game_sessions 
             SET status = 'completed', 
-                game_completed = 1,
                 is_completed = 1,
+                result = 'win',
+                solution_type = 'new',
                 session_end = NOW(),
-                current_board = %s,
                 score = %s,
                 hints_used = %s,
                 undo_count = %s,
@@ -740,7 +767,6 @@ async def submit_solution(submission: SolutionSubmission):
                 speedup_factor = %s
             WHERE id = %s
         """, (
-            json.dumps(board),
             int(score),
             session["hints_used"],
             session["undos_used"],
@@ -755,7 +781,7 @@ async def submit_solution(submission: SolutionSubmission):
         cursor.execute("""
             UPDATE players 
             SET total_games_played = total_games_played + 1,
-                games_completed = games_completed + 1,
+                total_solutions_found = total_solutions_found + 1,
                 highest_score = GREATEST(highest_score, %s),
                 last_played = NOW()
             WHERE id = %s
@@ -1143,10 +1169,15 @@ async def get_player_profile(player_name: str):
             """, (player['id'],))
             difficulty_stats = cursor.fetchall()
             
-            # Get total games count
-            cursor.execute("SELECT COUNT(*) as total_games FROM game_sessions WHERE player_id = %s", (player['id'],))
-            total_games_result = cursor.fetchone()
-            total_games = total_games_result['total_games'] if total_games_result else 0
+            # Get total games count and avg time
+            cursor.execute("""
+                SELECT COUNT(*) as total_games,
+                       AVG(CASE WHEN is_completed = 1 THEN completion_time_seconds END) as avg_time
+                FROM game_sessions WHERE player_id = %s
+            """, (player['id'],))
+            stats_result = cursor.fetchone()
+            total_games = stats_result['total_games'] if stats_result else 0
+            avg_completion_time = stats_result['avg_time'] if stats_result and stats_result['avg_time'] else None
         finally:
             connection.close()
         
@@ -1162,6 +1193,7 @@ async def get_player_profile(player_name: str):
                 "total_games_played": total_games,
                 "solutions_found": player.get('total_solutions_found', 0),
                 "highest_score": player.get('highest_score', 0),
+                "avg_completion_time": avg_completion_time,
                 "difficulty_stats": difficulty_stats,
                 "total_games": total_games,
                 "recent_activity": []
@@ -1190,14 +1222,12 @@ async def get_player_solutions(player_name: str):
             if not player:
                 return {"status": "error", "message": "Player not found", "data": {"solutions": []}}
             
-            # Get solutions found by this player
+            # Get solutions found by this player from solutions table
             cursor.execute("""
-                SELECT eq.solution_id, eq.solution_hash, eq.found_at,
-                       s.solution_array, s.solution_number
-                FROM EightQueensSolutions eq
-                LEFT JOIN solutions s ON eq.solution_id = s.id
-                WHERE eq.found_by_player_id = %s AND eq.is_found = TRUE
-                ORDER BY eq.found_at DESC
+                SELECT solution_id, solution_array, solution_hash, found_at
+                FROM solutions
+                WHERE found_by_player_id = %s AND is_found = TRUE
+                ORDER BY found_at DESC
             """, (player['id'],))
             solutions = cursor.fetchall()
             
@@ -1225,6 +1255,73 @@ async def get_player_solutions(player_name: str):
     except Exception as e:
         logger.error(f"Error getting player solutions: {e}")
         return {"status": "error", "message": str(e), "data": {"solutions": []}}
+
+
+@router.get("/players/{player_name}/games")
+async def get_player_games(player_name: str):
+    """Get game history for a specific player"""
+    try:
+        connection = get_db_connection()
+        try:
+            cursor = connection.cursor(dictionary=True)
+            
+            # Find player
+            cursor.execute("SELECT id FROM players WHERE LOWER(name) = LOWER(%s)", (player_name,))
+            player = cursor.fetchone()
+            
+            if not player:
+                return {"status": "error", "message": "Player not found", "data": {"games": []}}
+            
+            # Get game history
+            cursor.execute("""
+                SELECT id, difficulty, score, hints_used, undo_count,
+                       is_completed, result, solution_type, completion_time_seconds, status,
+                       session_start, session_end,
+                       sequential_time_ms, threaded_time_ms, speedup_factor
+                FROM game_sessions
+                WHERE player_id = %s
+                ORDER BY session_start DESC
+                LIMIT 20
+            """, (player['id'],))
+            games = cursor.fetchall()
+            
+            # Format games for response
+            formatted_games = []
+            for game in games:
+                formatted_games.append({
+                    "game_id": game['id'],
+                    "difficulty": game['difficulty'] or 'medium',
+                    "score": game['score'] or 0,
+                    "time_taken": game['completion_time_seconds'] or 0,
+                    "hints_used": game['hints_used'] or 0,
+                    "undo_count": game['undo_count'] or 0,
+                    "is_complete": game['is_completed'] == 1,
+                    "result": game['result'] or ('win' if game['is_completed'] == 1 else 'abandoned'),
+                    "solution_type": game.get('solution_type'),
+                    "status": game['status'] or 'unknown',
+                    "played_at": game['session_start'].isoformat() if game.get('session_start') else None,
+                    "algorithm_stats": {
+                        "sequential_time_ms": float(game['sequential_time_ms']) if game.get('sequential_time_ms') else None,
+                        "threaded_time_ms": float(game['threaded_time_ms']) if game.get('threaded_time_ms') else None,
+                        "speedup_factor": float(game['speedup_factor']) if game.get('speedup_factor') else None
+                    }
+                })
+            
+            return {
+                "status": "success",
+                "data": {
+                    "player_name": player_name,
+                    "games": formatted_games,
+                    "total_games": len(formatted_games)
+                }
+            }
+        finally:
+            cursor.close()
+            connection.close()
+            
+    except Exception as e:
+        logger.error(f"Error getting player games: {e}")
+        return {"status": "error", "message": str(e), "data": {"games": []}}
 
 
 @router.get("/players/check/{player_name}")
@@ -1276,23 +1373,22 @@ async def exit_game(exit_data: GameExitRequest):
         if session_id and session_id in game_sessions:
             del game_sessions[session_id]
         
-        # Update database record as exited
+        # Update database record as exited (loss)
         connection = get_db_connection()
         try:
             cursor = connection.cursor()
             update_query = """
                 UPDATE game_sessions 
                 SET status = 'exited', 
+                    is_completed = 1,
+                    result = 'loss',
                     session_end = NOW(),
-                    current_board = %s,
                     hints_used = %s,
                     undo_count = %s,
-                    completion_time_seconds = %s,
-                    game_completed = 0
+                    completion_time_seconds = %s
                 WHERE id = %s
             """
             cursor.execute(update_query, (
-                json.dumps(current_board) if current_board else None,
                 hints_used,
                 undos_used, 
                 int(time_elapsed),

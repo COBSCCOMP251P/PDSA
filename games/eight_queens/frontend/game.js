@@ -39,6 +39,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         showDifficultyScreen();
     }
+    
+    // Save game progress when browser/tab is closed
+    window.addEventListener('beforeunload', function(e) {
+        if (gameState.sessionId && !gameState.completed) {
+            // Use sendBeacon for reliable delivery on page unload
+            const timeElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const data = JSON.stringify({
+                session_id: gameState.sessionId,
+                current_board: gameState.board,
+                hints_used: gameState.hintsUsed,
+                undos_used: gameState.undosUsed,
+                time_elapsed: timeElapsed
+            });
+            navigator.sendBeacon(`${API_BASE}/game/exit`, data);
+        }
+    });
 });
 
 // Show difficulty screen directly
@@ -405,14 +421,6 @@ function createChessBoard() {
             // Check if queen should be placed
             if (gameState.board[row] === col) {
                 cell.innerHTML = '<span class="queen">♛</span>';
-                
-                // Mark pre-placed queens in Easy mode (locked, can't remove)
-                if (gameState.selectedDifficulty === 'easy') {
-                    if ((row === 0 && col === 0) || (row === 1 && col === 2)) {
-                        cell.classList.add('pre-placed');
-                        cell.title = 'Pre-placed queen (locked)';
-                    }
-                }
             }
             
             cell.addEventListener('click', () => makeMove(row, col));
@@ -428,16 +436,6 @@ function createChessBoard() {
 async function makeMove(row, col) {
     try {
         const action = gameState.board[row] === col ? 'remove' : 'place';
-        
-        // Prevent removing pre-placed queens in Easy mode
-        if (gameState.selectedDifficulty === 'easy' && action === 'remove') {
-            // Check if this is a pre-placed queen (row 0 or 1 in original positions)
-            if ((row === 0 && col === 0) || (row === 1 && col === 2)) {
-                document.getElementById('moveStatus').textContent = '⚠️ Cannot remove pre-placed queens!';
-                document.getElementById('moveStatus').style.color = '#f59e0b';
-                return;
-            }
-        }
         
         const response = await fetch(`${API_BASE}/game/move`, {
             method: 'POST',
@@ -573,21 +571,15 @@ function undoMove() {
         return;
     }
     
+    // Medium mode - limited undos
     if (gameState.selectedDifficulty === 'medium' && gameState.undosUsed >= 5) {
-        alert('No more undos available!');
+        alert('No more undos available! (5/5 used)');
         return;
     }
     
     const lastMove = gameState.moveHistory.pop();
     
-    // Prevent undoing pre-placed queens in Easy mode
-    if (gameState.selectedDifficulty === 'easy' && lastMove.row < 2 && lastMove.action === 'remove') {
-        // This was an undo of a pre-placed queen removal, don't allow
-        gameState.moveHistory.push(lastMove); // Put it back
-        alert('Cannot undo pre-placed queens!');
-        return;
-    }
-    
+    // Reverse the action
     if (lastMove.action === 'place') {
         gameState.board[lastMove.row] = -1;
     } else {
@@ -656,12 +648,8 @@ async function resetGame() {
 }
 
 function resetLocalGame() {
-    // Create initial board based on difficulty (same as server logic)
+    // Create empty initial board for all difficulties (no pre-placed queens)
     let initialBoard = [-1, -1, -1, -1, -1, -1, -1, -1];
-    if (gameState.selectedDifficulty === 'easy') {
-        initialBoard[0] = 0;
-        initialBoard[1] = 2;
-    }
     
     gameState.board = initialBoard;
     gameState.hintsUsed = 0;
@@ -681,8 +669,32 @@ function resetLocalGame() {
     document.getElementById('statusMessage').textContent = 'Game reset! Place your queens on the board.';
 }
 
-function exitGame() {
-    if (confirm('Exit game? Your progress will be saved as incomplete.')) {
+async function exitGame() {
+    if (confirm('Exit game? Your progress will be saved as a loss.')) {
+        try {
+            const timeElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            
+            // Call API to save exit status
+            await fetch(`${API_BASE}/game/exit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: gameState.sessionId,
+                    current_board: gameState.board,
+                    hints_used: gameState.hintsUsed,
+                    undos_used: gameState.undosUsed,
+                    time_elapsed: timeElapsed
+                })
+            });
+        } catch (error) {
+            console.error('Exit save error:', error);
+        }
+        
+        // Clear timer
+        if (gameState.timerInterval) {
+            clearInterval(gameState.timerInterval);
+        }
+        
         showDifficultySelection();
     }
 }
@@ -940,26 +952,50 @@ function updateGameStats() {
 }
 
 function updateHintButton() {
-    const hintsRemaining = gameState.gameSettings.max_hints - gameState.hintsUsed;
+    const hintBtn = document.getElementById('hintBtn');
     const hintCounter = document.getElementById('hintCounter');
+    const hintsRemaining = gameState.gameSettings.max_hints - gameState.hintsUsed;
     
     if (gameState.gameSettings.max_hints === 999) {
         hintCounter.textContent = '(∞)';
+        hintBtn.disabled = false;
+        hintBtn.style.opacity = '1';
     } else {
-        hintCounter.textContent = `(${hintsRemaining})`;
+        hintCounter.textContent = `(${Math.max(0, hintsRemaining)})`;
         if (hintsRemaining <= 0) {
-            document.getElementById('hintBtn').disabled = true;
+            hintBtn.disabled = true;
+            hintBtn.style.opacity = '0.5';
+        } else {
+            hintBtn.disabled = false;
+            hintBtn.style.opacity = '1';
         }
     }
 }
 
 function updateUndoButton() {
-    if (gameState.selectedDifficulty === 'medium') {
+    const undoBtn = document.getElementById('undoBtn');
+    const undoCounter = document.getElementById('undoCounter');
+    
+    if (gameState.selectedDifficulty === 'hard') {
+        // Hard mode - no undo allowed
+        undoBtn.disabled = true;
+        undoBtn.style.opacity = '0.5';
+        undoCounter.textContent = '(0)';
+    } else if (gameState.selectedDifficulty === 'medium') {
         const undosRemaining = 5 - gameState.undosUsed;
-        document.getElementById('undoCounter').textContent = `(${undosRemaining})`;
+        undoCounter.textContent = `(${undosRemaining})`;
         if (undosRemaining <= 0) {
-            document.getElementById('undoBtn').disabled = true;
+            undoBtn.disabled = true;
+            undoBtn.style.opacity = '0.5';
+        } else {
+            undoBtn.disabled = false;
+            undoBtn.style.opacity = '1';
         }
+    } else {
+        // Easy mode - unlimited undos
+        undoCounter.textContent = '(∞)';
+        undoBtn.disabled = false;
+        undoBtn.style.opacity = '1';
     }
 }
 

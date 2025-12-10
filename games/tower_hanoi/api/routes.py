@@ -28,22 +28,41 @@ class GameResult(BaseModel):
     time_taken: float
     is_optimal: bool = False
 
-# Try to import algorithms
+# Try to import algorithms using importlib to avoid path conflicts
 try:
     import sys
     import os
-    # Add backend folder to path
-    backend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend')
-    if backend_path not in sys.path:
-        sys.path.insert(0, backend_path)
+    import importlib.util
     
-    from algorithms import AlgorithmRunner, solve_tower_of_hanoi
-    from validator import GameValidator, parse_move_sequence
+    # Get backend folder path
+    backend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend')
+    
+    # Load algorithms module directly from file
+    algorithms_spec = importlib.util.spec_from_file_location(
+        "tower_hanoi_algorithms", 
+        os.path.join(backend_path, "algorithms.py")
+    )
+    algorithms_module = importlib.util.module_from_spec(algorithms_spec)
+    algorithms_spec.loader.exec_module(algorithms_module)
+    
+    # Load validator module directly from file
+    validator_spec = importlib.util.spec_from_file_location(
+        "tower_hanoi_validator", 
+        os.path.join(backend_path, "validator.py")
+    )
+    validator_module = importlib.util.module_from_spec(validator_spec)
+    validator_spec.loader.exec_module(validator_module)
+    
+    # Extract classes and functions
+    AlgorithmRunner = algorithms_module.AlgorithmRunner
+    solve_tower_of_hanoi = algorithms_module.solve_tower_of_hanoi
+    GameValidator = validator_module.GameValidator
+    parse_move_sequence = validator_module.parse_move_sequence
     
     algorithm_runner = AlgorithmRunner()
     game_validator = GameValidator()
     ALGORITHMS_AVAILABLE = True
-except ImportError as e:
+except Exception as e:
     print(f"Tower of Hanoi algorithms not available: {e}")
     ALGORITHMS_AVAILABLE = False
     algorithm_runner = None

@@ -5,7 +5,7 @@
 
 class TowerOfHanoiApp {
     constructor() {
-        this.apiBaseUrl = 'http://localhost:8002/api';
+        this.apiBaseUrl = 'http://localhost:8000/api/hanoi';
         this.currentRound = null;
         this.algorithmChart = null;
         this.statsChart = null;

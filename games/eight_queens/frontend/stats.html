@@ -683,7 +683,7 @@
                         tbody.innerHTML = games.map((game, index) => {
                             const difficulty = game.difficulty || 'Medium';
                             const diffClass = difficulty.toLowerCase();
-                            const isComplete = game.is_complete || game.score > 0;
+                            const isWin = game.result === 'win';
                             
                             return `
                                 <tr>
@@ -692,8 +692,8 @@
                                     <td>${game.score || 0}</td>
                                     <td>${formatTime(game.time_taken || game.completion_time || 0)}</td>
                                     <td>
-                                        <span class="status-badge ${isComplete ? 'completed' : 'incomplete'}">
-                                            ${isComplete ? '✓ Won' : '✗ Lost'}
+                                        <span class="status-badge ${isWin ? 'completed' : 'incomplete'}">
+                                            ${isWin ? '✓ Won' : '✗ Lost'}
                                         </span>
                                     </td>
                                     <td>${game.played_at ? new Date(game.played_at).toLocaleDateString() : 'N/A'}</td>
