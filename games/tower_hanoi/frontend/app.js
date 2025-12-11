@@ -28,10 +28,6 @@ class TowerOfHanoiApp {
             this.showSection('leaderboardSection');
             this.loadLeaderboard();
         });
-        document.getElementById('algorithmsBtn').addEventListener('click', () => {
-            this.showSection('algorithmsSection');
-            this.loadAlgorithmStats();
-        });
         document.getElementById('aboutBtn').addEventListener('click', () => this.showSection('aboutSection'));
 
         // Hero buttons
@@ -181,8 +177,8 @@ class TowerOfHanoiApp {
                     if (window.interactiveGame) {
                         console.log('Clearing existing interactive game');
                     }
-                    window.interactiveGame = new InteractiveTowerGame(gameContainer, roundData.n_disks);
-                    console.log('Interactive game initialized with', roundData.n_disks, 'disks');
+                    window.interactiveGame = new InteractiveTowerGame(gameContainer, roundData.n_disks, roundData.peg_count);
+                    console.log('Interactive game initialized with', roundData.n_disks, 'disks and', roundData.peg_count, 'pegs');
                 } catch (gameError) {
                     console.error('Error initializing interactive game:', gameError);
                     // Don't throw here, just warn
@@ -877,14 +873,15 @@ class TowerOfHanoiApp {
  * Handles visual gameplay with click-to-move functionality
  */
 class InteractiveTowerGame {
-    constructor(container, diskCount = 3) {
+    constructor(container, diskCount = 3, pegCount = 3) {
         if (!container) {
             throw new Error('Container element is required for InteractiveTowerGame');
         }
         
         this.container = container;
         this.diskCount = diskCount;
-        this.towers = [[], [], []];
+        this.pegCount = pegCount;
+        this.towers = Array(pegCount).fill().map(() => []);
         this.selectedDisk = null;
         this.selectedPeg = null;
         this.moves = 0;
@@ -897,7 +894,7 @@ class InteractiveTowerGame {
     }
 
     initializeTowers() {
-        this.towers = [[], [], []];
+        this.towers = Array(this.pegCount).fill().map(() => []);
         // Initialize first peg with disks (largest to smallest)
         for (let i = this.diskCount; i >= 1; i--) {
             this.towers[0].push(i);
@@ -919,6 +916,10 @@ class InteractiveTowerGame {
                     <h4>🎮 Start New Game</h4>
                     <div class="input-group">
                         <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="50" required>
+                        <select id="gamePegCount">
+                            <option value="3" ${this.pegCount === 3 ? 'selected' : ''}>3 Pegs</option>
+                            <option value="4" ${this.pegCount === 4 ? 'selected' : ''}>4 Pegs</option>
+                        </select>
                         <select id="gameDiskCount">
                             <option value="3" ${this.diskCount === 3 ? 'selected' : ''}>3 Disks</option>
                             <option value="4" ${this.diskCount === 4 ? 'selected' : ''}>4 Disks</option>
@@ -976,6 +977,7 @@ class InteractiveTowerGame {
 
     startGame() {
         const nameInput = document.getElementById('playerNameInput');
+        const pegSelect = document.getElementById('gamePegCount');
         const diskSelect = document.getElementById('gameDiskCount');
         
         if (!nameInput.value.trim()) {
@@ -984,6 +986,7 @@ class InteractiveTowerGame {
         }
 
         this.playerName = nameInput.value.trim();
+        this.pegCount = parseInt(pegSelect.value);
         this.diskCount = parseInt(diskSelect.value);
         this.gameActive = true;
         this.startTime = new Date();
@@ -1002,9 +1005,9 @@ class InteractiveTowerGame {
         
         const canvasWidth = pegsContainer.clientWidth || 600;
         const canvasHeight = 300;
-        const pegWidth = Math.floor(canvasWidth / 3) - 10;
+        const pegWidth = Math.floor(canvasWidth / this.pegCount) - 10;
         
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < this.pegCount; i++) {
             const pegContainer = document.createElement('div');
             pegContainer.className = 'peg-container';
             pegContainer.dataset.peg = i;
@@ -1012,7 +1015,7 @@ class InteractiveTowerGame {
                 width: ${pegWidth}px;
                 height: ${canvasHeight}px;
                 display: flex;
-                flex-direction: column-reverse;
+                flex-direction: column;
                 align-items: center;
                 justify-content: flex-end;
                 position: relative;
@@ -1042,14 +1045,31 @@ class InteractiveTowerGame {
             `;
             pegContainer.appendChild(pegRod);
             
+            // Draw peg base (the platform at the bottom of the stick)
+            const pegBase = document.createElement('div');
+            pegBase.style.cssText = `
+                width: 80px;
+                height: 15px;
+                background: linear-gradient(to right, #8b7355, #654321, #8b7355);
+                border-radius: 8px;
+                position: absolute;
+                bottom: 15px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+            `;
+            pegContainer.appendChild(pegBase);
+            
             // Add peg label
             const pegLabel = document.createElement('div');
+            const isTarget = (i === this.pegCount - 1);
             pegLabel.style.cssText = `
                 position: absolute;
                 top: 5px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: rgba(59, 130, 246, 0.8);
+                background: ${isTarget ? 'rgba(34, 197, 94, 0.9)' : 'rgba(59, 130, 246, 0.8)'};
                 color: white;
                 padding: 4px 8px;
                 border-radius: 12px;
@@ -1057,12 +1077,19 @@ class InteractiveTowerGame {
                 font-weight: 600;
                 z-index: 2;
             `;
-            pegLabel.textContent = ['Source', 'Auxiliary', 'Target'][i];
+            // Label the first peg as Source, last as Target, others as Auxiliary
+            if (i === 0) {
+                pegLabel.textContent = 'Source';
+            } else if (i === this.pegCount - 1) {
+                pegLabel.textContent = 'Target';
+            } else {
+                pegLabel.textContent = 'Auxiliary';
+            }
             pegContainer.appendChild(pegLabel);
             
-            // Add disks
+            // Add disks (in reverse order to stack from bottom with column flex-direction)
             const disks = this.towers[i];
-            for (let j = 0; j < disks.length; j++) {
+            for (let j = disks.length - 1; j >= 0; j--) {
                 const diskSize = disks[j];
                 const diskElement = document.createElement('div');
                 diskElement.className = 'disk';
@@ -1212,7 +1239,7 @@ class InteractiveTowerGame {
             });
             
             // Highlight valid destination pegs
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < this.pegCount; i++) {
                 if (i !== this.selectedPeg && this.isValidMove(this.selectedPeg, i)) {
                     document.querySelector(`.peg-container[data-peg="${i}"]`).classList.add('peg-highlight');
                 }
@@ -1221,7 +1248,7 @@ class InteractiveTowerGame {
     }
 
     checkWinCondition() {
-        return this.towers[2].length === this.diskCount;
+        return this.towers[this.pegCount - 1].length === this.diskCount;
     }
 
     gameWon() {
@@ -1263,6 +1290,7 @@ class InteractiveTowerGame {
             const gameData = {
                 player_name: this.playerName,
                 disk_count: this.diskCount,
+                peg_count: this.pegCount,
                 moves: this.moves,
                 time_taken: duration,
                 is_optimal: this.moves === (Math.pow(2, this.diskCount) - 1)
@@ -1351,6 +1379,11 @@ class InteractiveTowerGame {
             this.gameActive = false;
             clearInterval(this.timerInterval);
             this.setupGameUI();
+            
+            // Navigate back to home page
+            if (window.app) {
+                window.app.showSection('homeSection');
+            }
         }
     }
 

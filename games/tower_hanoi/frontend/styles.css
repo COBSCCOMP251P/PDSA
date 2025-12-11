@@ -339,10 +339,11 @@ body {
 
 .peg {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: center;
     position: relative;
     padding: 1rem;
+    justify-content: flex-end;
 }
 
 .peg-label {
@@ -861,12 +862,18 @@ body {
 
 .stat {
     text-align: center;
+    background: rgba(239, 68, 68, 0.9);
+    padding: 8px 12px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .stat-label {
     display: block;
     font-size: 0.8rem;
     opacity: 0.9;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .stat-value {
@@ -874,6 +881,7 @@ body {
     font-size: 1.2rem;
     font-weight: 600;
     margin-top: 2px;
+    color: white;
 }
 
 /* Enhanced Pegs Container */
