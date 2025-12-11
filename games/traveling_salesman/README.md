@@ -1,39 +1,26 @@
-# Traveling Salesman Game Module
+# Traveling Salesman Game
 
-**Developer:** Member 3  
-**Game:** Traveling Salesman Problem  
-**Assignment:** PDSA Interactive Algorithm Games
+Vanilla JS + Tailwind frontend with a FastAPI backend and MySQL storage for a student-friendly Traveling Salesman Problem game.
 
-## 🎯 Problem Description
-Find the shortest route visiting selected cities exactly once and return to the starting city.
+## What’s Inside
+- `frontend/` — static HTML/JS/CSS pages for home, game board, and results.
+- `backend/` — FastAPI app with TSP algorithms, validation, and DB persistence.
+- `database/` — MySQL schema for `tsp_game` with game rounds and algorithm times.
+- `requirements.txt` — Python dependencies for the backend.
 
-## 🧠 Algorithm Requirements
-- **Algorithm 1**: Brute Force Approach
-- **Algorithm 2**: Genetic Algorithm
-- **Algorithm 3**: Held-Karp (Dynamic Programming)
-- **Cities**: A through J with random distances (50-100 km)
-- **Route**: User-selected cities from random home city
+## Quickstart
+1) Install Python deps: `pip install -r requirements.txt`
+2) Create MySQL DB: run `database/tsp_schema.sql` in your MySQL client.
+3) Configure DB URL: export `TSP_DATABASE_URL=mysql+mysqlconnector://user:pass@localhost:3306/tsp_game`
+4) Run API: `uvicorn backend.main:app --reload --port 8000`
+5) Open `frontend/index.html` in your browser (or serve the folder statically).
 
-## 📁 Module Structure
-```
-traveling_salesman/
-├── algorithms/       # Three different TSP algorithms
-├── frontend/        # City map and route visualization
-├── api/            # FastAPI endpoints
-├── tests/          # Unit tests
-└── docs/           # Analysis and reports
-```
+## Gameplay Flow
+1) Home page: enter optional player name and continue.
+2) Game page: pick cities (A–J), generate matrix, set visit order, compute your route.
+3) Results page: compare against brute force, nearest neighbor, and DP; save to DB.
 
-## 🚀 Getting Started
-1. Implement all three algorithms in `algorithms/`
-2. Create interactive map in `frontend/`
-3. Set up API endpoints in `api/`
-4. Write comprehensive tests
-5. Compare recursive vs iterative approaches
-
-## 📊 Expected Deliverables
-- Shortest route calculation
-- Random distance matrix
-- City selection interface
-- Algorithm complexity analysis
-- Performance comparison
+## Notes
+- CORS is open for easy local testing.
+- Score formula: `max(10, int((optimal_distance / player_distance) * 100))`.
+- Matrix is always 10×10, symmetric, 50–100 weights, and zero diagonal.

@@ -81,7 +81,7 @@ class GameStart(BaseModel):
     """Model for starting a new game with difficulty"""
     player_name: str = Field(..., min_length=1, max_length=100)
     difficulty: str = Field(..., pattern="^(easy|medium|hard)$")
-    algorithm_type: str = Field(default="sequential", pattern="^(sequential|threaded)$")
+    # algorithm_type removed - both algorithms run on submit for timing comparison
     
     @pydantic_validator('player_name')
     def sanitize_player_name(cls, v):
@@ -243,7 +243,6 @@ def recover_session_from_db(session_id: int) -> Optional[Dict[str, Any]]:
                 "player_id": db_session['player_id'],
                 "player_name": db_session['player_name'],
                 "difficulty": difficulty,
-                "algorithm_type": db_session.get('algorithm_type', 'sequential'),
                 "settings": settings,
                 "board": [-1]*8,  # Always start fresh - board state not persisted
                 "start_time": time.time() - (db_session.get('completion_time_seconds') or 0),
@@ -331,10 +330,10 @@ async def start_new_game(game_start: GameStart):
         # Create game session in database
         starting_board = create_starting_board(game_start.difficulty)
         insert_query = """
-            INSERT INTO game_sessions (player_id, difficulty, algorithm_type, status)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO game_sessions (player_id, difficulty, status)
+            VALUES (%s, %s, %s)
         """
-        cursor.execute(insert_query, (player['id'], game_start.difficulty, game_start.algorithm_type, 'in_progress'))
+        cursor.execute(insert_query, (player['id'], game_start.difficulty, 'in_progress'))
         session_id = cursor.lastrowid
     finally:
         connection.close()
@@ -348,7 +347,6 @@ async def start_new_game(game_start: GameStart):
         "player_id": player['id'],
         "player_name": game_start.player_name,
         "difficulty": game_start.difficulty,
-        "algorithm_type": game_start.algorithm_type,
         "settings": settings,
         "board": starting_board,
         "start_time": time.time(),

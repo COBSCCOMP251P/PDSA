@@ -103,7 +103,6 @@ CREATE TABLE game_sessions (
     player_id INT NOT NULL,
     session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     session_end TIMESTAMP NULL,
-    algorithm_type ENUM('sequential', 'threaded') NOT NULL,
     
     -- Performance metrics - BOTH algorithms (PDSA Requirement)
     total_solutions_found INT DEFAULT 0,
@@ -133,7 +132,6 @@ CREATE TABLE game_sessions (
     -- Indexes for performance
     INDEX idx_player_sessions (player_id),
     INDEX idx_session_date (session_start),
-    INDEX idx_algorithm_type (algorithm_type),
     INDEX idx_execution_time (execution_time_ms)
 );
 
@@ -313,8 +311,8 @@ INSERT INTO solutions (solution_number, solution_array, solution_string, symmetr
 -- =============================================
 
 -- Additional composite indexes for common queries
-CREATE INDEX idx_player_algorithm_performance ON game_sessions(player_id, algorithm_type, execution_time_ms);
-CREATE INDEX idx_discovery_timeline ON discovered_solutions(discovered_at, algorithm_type);
+CREATE INDEX idx_player_performance ON game_sessions(player_id, execution_time_ms);
+CREATE INDEX idx_discovery_timeline ON discovered_solutions(discovered_at);
 CREATE INDEX idx_solution_lookup ON solutions(solution_string, solution_number);
 
 -- =============================================

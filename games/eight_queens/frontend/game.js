@@ -6,7 +6,6 @@ let gameState = {
     playerEmail: '',
     isAuthenticated: false,
     selectedDifficulty: '',
-    selectedAlgorithm: 'sequential', // Default to sequential
     sessionId: null,
     board: new Array(8).fill(-1),
     gameSettings: {},
@@ -310,18 +309,13 @@ async function startSelectedGame() {
         return;
     }
     
-    // Get selected algorithm from radio buttons
-    const algorithmRadio = document.querySelector('input[name="algorithm"]:checked');
-    gameState.selectedAlgorithm = algorithmRadio ? algorithmRadio.value : 'sequential';
-    
     try {
         const response = await fetch(`${API_BASE}/game/start`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 player_name: gameState.playerName,
-                difficulty: gameState.selectedDifficulty,
-                algorithm_type: gameState.selectedAlgorithm
+                difficulty: gameState.selectedDifficulty
             })
         });
         
@@ -367,8 +361,6 @@ function setupGameDisplay() {
     document.getElementById('playerDisplay').textContent = gameState.playerName;
     document.getElementById('difficultyDisplay').textContent = 
         gameState.selectedDifficulty.charAt(0).toUpperCase() + gameState.selectedDifficulty.slice(1);
-    document.getElementById('algorithmDisplay').textContent = 
-        gameState.selectedAlgorithm === 'threaded' ? 'Multi-Threaded' : 'Sequential';
     
     const hintCounter = document.getElementById('hintCounter');
     const undoCounter = document.getElementById('undoCounter');
