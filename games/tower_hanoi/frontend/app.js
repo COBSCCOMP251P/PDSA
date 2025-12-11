@@ -150,10 +150,13 @@ class TowerOfHanoiApp {
             
             console.log('Form values:', { pegCount, diskCountSelect });
             
+            // Generate random number of disks between 5 and 10 if not specified
+            const randomDisks = Math.floor(Math.random() * 6) + 5; // Random number from 5 to 10
+            
             // Backend expects n_disks and peg_count
             const requestData = {
                 peg_count: pegCount,
-                n_disks: diskCountSelect ? parseInt(diskCountSelect) : 3  // Default to 3 if not selected
+                n_disks: diskCountSelect ? parseInt(diskCountSelect) : randomDisks
             };
             
             console.log('Request data:', requestData);
@@ -758,7 +761,7 @@ class TowerOfHanoiApp {
             const diskCount = parseInt(selectedDisks);
             this.visualizeGameState(diskCount, pegCount, true);
         } else {
-            // Show preview with random disk count (7 as example)
+            // Show preview with random disk count (7 as example, range is 5-10)
             this.visualizeGameState(7, pegCount, true);
         }
     }
