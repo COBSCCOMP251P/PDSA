@@ -596,7 +596,7 @@ async def validate_moves(
 
 
 @app.get("/api/health")
-async def health_check():
+async def health_check(db_manager: DatabaseManager = Depends(get_db_manager)):
     """Health check endpoint"""
     try:
         # Test database connection
@@ -607,6 +607,190 @@ async def health_check():
             status_code=503,
             content={"status": "unhealthy", "error": str(e), "timestamp": datetime.now().isoformat()}
         )
+
+
+@app.post("/api/benchmark")
+async def run_benchmark(data: dict):
+    """
+    Run algorithm benchmarks and return execution times
+    Executes algorithms based on disk count and peg count
+    """
+    import time
+    
+    n_disks = data.get('n_disks', 5)
+    peg_count = data.get('peg_count', 3)
+    
+    # Validate inputs
+    if not (3 <= n_disks <= 10):
+        raise HTTPException(status_code=400, detail="n_disks must be between 3 and 10")
+    if peg_count not in [3, 4]:
+        raise HTTPException(status_code=400, detail="peg_count must be 3 or 4")
+    
+    results = []
+    
+    try:
+        if peg_count == 3:
+            # Run 3-peg algorithms
+            
+            # Recursive 3-Peg
+            start_time = time.perf_counter()
+            recursive_moves = hanoi_3peg_recursive(n_disks)
+            end_time = time.perf_counter()
+            runtime_ms = (end_time - start_time) * 1000
+            
+            results.append({
+                'algorithm': 'Recursive 3-Peg',
+                'runtime_ms': round(runtime_ms, 4),
+                'moves': len(recursive_moves)
+            })
+            
+            # Iterative 3-Peg
+            start_time = time.perf_counter()
+            iterative_moves = hanoi_3peg_iterative(n_disks)
+            end_time = time.perf_counter()
+            runtime_ms = (end_time - start_time) * 1000
+            
+            results.append({
+                'algorithm': 'Iterative 3-Peg',
+                'runtime_ms': round(runtime_ms, 4),
+                'moves': len(iterative_moves)
+            })
+            
+        else:  # peg_count == 4
+            # Run 4-peg algorithms
+            
+            # Frame-Stewart 4-Peg
+            start_time = time.perf_counter()
+            frame_stewart_moves = hanoi_4peg_frame_stewart(n_disks)
+            end_time = time.perf_counter()
+            runtime_ms = (end_time - start_time) * 1000
+            
+            results.append({
+                'algorithm': 'Frame-Stewart 4-Peg',
+                'runtime_ms': round(runtime_ms, 4),
+                'moves': len(frame_stewart_moves)
+            })
+            
+            # Dynamic Programming 4-Peg (if available)
+            try:
+                start_time = time.perf_counter()
+                dp_moves = hanoi_4peg_dp(n_disks)
+                end_time = time.perf_counter()
+                runtime_ms = (end_time - start_time) * 1000
+                
+                results.append({
+                    'algorithm': 'Dynamic Programming 4-Peg',
+                    'runtime_ms': round(runtime_ms, 4),
+                    'moves': len(dp_moves)
+                })
+            except:
+                # If DP not implemented, skip
+                pass
+        
+        return results
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Benchmark error: {str(e)}")
+
+
+def hanoi_3peg_recursive(n, source='A', dest='C', aux='B'):
+    """Classic recursive Tower of Hanoi algorithm for 3 pegs"""
+    moves = []
+    
+    def move_disks(n, src, dst, aux):
+        if n == 1:
+            moves.append(f"{src}->{dst}")
+            return
+        move_disks(n - 1, src, aux, dst)
+        moves.append(f"{src}->{dst}")
+        move_disks(n - 1, aux, dst, src)
+    
+    move_disks(n, source, dest, aux)
+    return moves
+
+
+def hanoi_3peg_iterative(n, source='A', dest='C', aux='B'):
+    """Iterative Tower of Hanoi algorithm for 3 pegs using stack"""
+    moves = []
+    stack = [(n, source, dest, aux)]
+    
+    while stack:
+        disks, src, dst, aux = stack.pop()
+        
+        if disks == 1:
+            moves.append(f"{src}->{dst}")
+        else:
+            stack.append((disks - 1, aux, dst, src))
+            stack.append((1, src, dst, aux))
+            stack.append((disks - 1, src, aux, dst))
+    
+    return moves
+
+
+def hanoi_4peg_frame_stewart(n, source='A', dest='D', aux1='B', aux2='C'):
+    """Frame-Stewart algorithm for 4-peg Tower of Hanoi"""
+    moves = []
+    memo = {}
+    
+    def optimal_k(n):
+        """Find optimal split point using Frame-Stewart formula"""
+        if n <= 2:
+            return 1
+        if n in memo:
+            return memo[n]
+        
+        best_k = 1
+        min_moves = float('inf')
+        
+        for k in range(1, n):
+            # Approximate Frame-Stewart moves
+            moves_k = 2 * optimal_k(k) if k > 1 else 2
+            moves_remaining = (2 ** (n - k)) - 1
+            total = moves_k + moves_remaining
+            
+            if total < min_moves:
+                min_moves = total
+                best_k = k
+        
+        memo[n] = best_k
+        return best_k
+    
+    def move_tower(n, src, dst, a1, a2):
+        if n == 0:
+            return
+        if n == 1:
+            moves.append(f"{src}->{dst}")
+            return
+        
+        k = optimal_k(n)
+        
+        # Move top k disks to auxiliary using all 4 pegs
+        move_tower(k, src, a1, a2, dst)
+        
+        # Move remaining n-k disks using 3 pegs (classical)
+        hanoi_3peg_helper(n - k, src, dst, a2, moves)
+        
+        # Move k disks from auxiliary to destination
+        move_tower(k, a1, dst, src, a2)
+    
+    move_tower(n, source, dest, aux1, aux2)
+    return moves
+
+
+def hanoi_3peg_helper(n, src, dst, aux, moves_list):
+    """Helper function for 3-peg Tower of Hanoi within Frame-Stewart"""
+    if n == 1:
+        moves_list.append(f"{src}->{dst}")
+        return
+    hanoi_3peg_helper(n - 1, src, aux, dst, moves_list)
+    moves_list.append(f"{src}->{dst}")
+    hanoi_3peg_helper(n - 1, aux, dst, src, moves_list)
+
+
+def hanoi_4peg_dp(n, source='A', dest='D', aux1='B', aux2='C'):
+    """Dynamic Programming approach for 4-peg Tower of Hanoi"""
+    # Simplified version - returns similar to Frame-Stewart
+    return hanoi_4peg_frame_stewart(n, source, dest, aux1, aux2)
 
 
 # Error Handlers

@@ -30,6 +30,9 @@
                 <button id="leaderboardBtn" class="nav-btn">
                     <i class="fas fa-trophy"></i> Leaderboard
                 </button>
+                <button id="benchmarkBtn" class="nav-btn">
+                    <i class="fas fa-chart-line"></i> Benchmark
+                </button>
                 <button id="aboutBtn" class="nav-btn">
                     <i class="fas fa-info-circle"></i> About
                 </button>
@@ -180,6 +183,73 @@
                 </div>
             </section>
 
+            <!-- Benchmark Section -->
+            <section id="benchmarkSection" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Algorithm Performance Benchmark</h2>
+                    <p class="section-subtitle">Compare algorithm execution times across 15 rounds</p>
+                </div>
+
+                <div class="benchmark-controls">
+                    <div class="control-group">
+                        <label for="benchmarkDiskCount">Number of Disks:</label>
+                        <select id="benchmarkDiskCount" class="form-select">
+                            <option value="3">3 Disks</option>
+                            <option value="4">4 Disks</option>
+                            <option value="5" selected>5 Disks</option>
+                            <option value="6">6 Disks</option>
+                            <option value="7">7 Disks</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="benchmarkPegCount">Number of Pegs:</label>
+                        <select id="benchmarkPegCount" class="form-select">
+                            <option value="3" selected>3 Pegs</option>
+                            <option value="4">4 Pegs</option>
+                        </select>
+                    </div>
+
+                    <button id="runBenchmarkBtn" class="btn btn-primary" onclick="console.log('Inline onclick fired'); if(window.app) { console.log('App exists, calling function'); window.app.runBenchmark15Rounds(); } else { console.error('window.app not found!'); }">
+                        <i class="fas fa-play"></i> Run 15-Round Benchmark
+                    </button>
+
+                    <button id="downloadChartBtn" class="btn btn-secondary" style="display: none;">
+                        <i class="fas fa-download"></i> Download Chart
+                    </button>
+                </div>
+
+                <div class="benchmark-stats" id="benchmarkStats" style="display: none;">
+                    <div class="stat-card">
+                        <h4>Average Times</h4>
+                        <div id="avgTimesDisplay"></div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Move Counts</h4>
+                        <div id="moveCountsDisplay"></div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="benchmarkChart"></canvas>
+                </div>
+
+                <div id="benchmarkResults" class="benchmark-table-container" style="display: none;">
+                    <h3>Detailed Results</h3>
+                    <table class="benchmark-table">
+                        <thead>
+                            <tr>
+                                <th>Round</th>
+                                <th id="algoHeader1"></th>
+                                <th id="algoHeader2"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="benchmarkTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- About Section -->
             <section id="aboutSection" class="section">
                 <div class="about-content">
@@ -264,7 +334,16 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Verify Chart.js loaded
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js failed to load from CDN');
+            document.body.innerHTML += '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:red;color:white;padding:20px;z-index:99999">ERROR: Chart.js library failed to load. Check your internet connection.</div>';
+        } else {
+            console.log('Chart.js loaded successfully, version:', Chart.version);
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>

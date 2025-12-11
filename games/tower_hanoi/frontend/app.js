@@ -9,6 +9,7 @@ class TowerOfHanoiApp {
         this.currentRound = null;
         this.algorithmChart = null;
         this.statsChart = null;
+        this.benchmarkChart = null;
         
         this.init();
     }
@@ -28,6 +29,7 @@ class TowerOfHanoiApp {
             this.showSection('leaderboardSection');
             this.loadLeaderboard();
         });
+        document.getElementById('benchmarkBtn').addEventListener('click', () => this.showSection('benchmarkSection'));
         document.getElementById('aboutBtn').addEventListener('click', () => this.showSection('aboutSection'));
 
         // Hero buttons
@@ -47,6 +49,18 @@ class TowerOfHanoiApp {
         // Refresh buttons
         document.getElementById('refreshLeaderboardBtn').addEventListener('click', () => this.loadLeaderboard());
         document.getElementById('refreshStatsBtn').addEventListener('click', () => this.loadAlgorithmStats());
+
+        // Benchmark controls
+        const runBenchmarkBtn = document.getElementById('runBenchmarkBtn');
+        const downloadChartBtn = document.getElementById('downloadChartBtn');
+        
+        if (runBenchmarkBtn) {
+            runBenchmarkBtn.addEventListener('click', () => this.runBenchmark15Rounds());
+        }
+        
+        if (downloadChartBtn) {
+            downloadChartBtn.addEventListener('click', () => this.downloadChartAsImage());
+        }
     }
 
     showSection(sectionId) {
@@ -68,6 +82,7 @@ class TowerOfHanoiApp {
             'gameSection': 'gameBtn',
             'leaderboardSection': 'leaderboardBtn',
             'algorithmsSection': 'algorithmsBtn',
+            'benchmarkSection': 'benchmarkBtn',
             'aboutSection': 'aboutBtn'
         };
 
@@ -866,6 +881,267 @@ class TowerOfHanoiApp {
             container.appendChild(notice);
         }
     }
+
+    // ========== BENCHMARK FUNCTIONALITY ==========
+    
+    async runBenchmark15Rounds() {
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            this.showNotification('❌ Chart.js library not loaded. Please refresh the page.', 'error');
+            console.error('Chart.js is not defined. Library failed to load.');
+            return;
+        }
+        
+        const diskCount = parseInt(document.getElementById('benchmarkDiskCount').value);
+        const pegCount = parseInt(document.getElementById('benchmarkPegCount').value);
+        const runButton = document.getElementById('runBenchmarkBtn');
+        const downloadButton = document.getElementById('downloadChartBtn');
+        
+        // Disable button and show loading state
+        runButton.disabled = true;
+        runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+        
+        this.showNotification('Starting 15-round benchmark... This may take a moment.', 'info');
+        
+        try {
+            const allResults = {};
+            
+            // Run 15 rounds
+            for (let round = 1; round <= 15; round++) {
+                const response = await fetch(`${this.apiBaseUrl}/benchmark`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        n_disks: diskCount,
+                        peg_count: pegCount
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const roundResults = await response.json();
+                
+                // Store results for each algorithm
+                roundResults.forEach(result => {
+                    if (!allResults[result.algorithm]) {
+                        allResults[result.algorithm] = {
+                            times: [],
+                            moves: result.moves
+                        };
+                    }
+                    allResults[result.algorithm].times.push(result.runtime_ms);
+                });
+                
+                // Update button text with progress
+                runButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Round ${round}/15...`;
+            }
+            
+            // Generate chart with collected data
+            this.generateBenchmarkChart(allResults, diskCount, pegCount);
+            
+            // Show download button
+            downloadButton.style.display = 'inline-block';
+            
+            // Show statistics
+            this.displayBenchmarkStats(allResults);
+            
+            // Show detailed results table
+            this.displayBenchmarkTable(allResults);
+            
+            this.showNotification('✅ Benchmark complete! 15 rounds executed successfully.', 'success');
+            
+        } catch (error) {
+            console.error('Benchmark error:', error);
+            this.showNotification(`❌ Benchmark failed: ${error.message}`, 'error');
+        } finally {
+            // Re-enable button
+            runButton.disabled = false;
+            runButton.innerHTML = '<i class="fas fa-play"></i> Run 15-Round Benchmark';
+        }
+    }
+    
+    generateBenchmarkChart(resultsData, diskCount, pegCount) {
+        const ctx = document.getElementById('benchmarkChart').getContext('2d');
+        
+        // Prepare data for Chart.js
+        const rounds = Array.from({length: 15}, (_, i) => `Round ${i + 1}`);
+        
+        const datasets = [];
+        const colors = [
+            { border: 'rgb(255, 99, 132)', bg: 'rgba(255, 99, 132, 0.1)' },   // Red
+            { border: 'rgb(54, 162, 235)', bg: 'rgba(54, 162, 235, 0.1)' },   // Blue
+            { border: 'rgb(255, 205, 86)', bg: 'rgba(255, 205, 86, 0.1)' },   // Yellow
+            { border: 'rgb(75, 192, 192)', bg: 'rgba(75, 192, 192, 0.1)' }    // Green
+        ];
+        
+        let colorIndex = 0;
+        for (const [algorithm, data] of Object.entries(resultsData)) {
+            if (data.times.length > 0) {
+                datasets.push({
+                    label: algorithm,
+                    data: data.times,
+                    borderColor: colors[colorIndex].border,
+                    backgroundColor: colors[colorIndex].bg,
+                    borderWidth: 3,
+                    tension: 0.4,  // Smooth curves
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: colors[colorIndex].border,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                });
+                colorIndex++;
+            }
+        }
+        
+        // Destroy existing chart if it exists
+        if (this.benchmarkChart) {
+            this.benchmarkChart.destroy();
+        }
+        
+        // Create new chart
+        this.benchmarkChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: rounds,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `Algorithm Performance: ${diskCount} Disks, ${pegCount} Pegs (15 Rounds)`,
+                        font: { size: 18, weight: 'bold' },
+                        padding: 20
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 14 },
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y.toFixed(3)} ms`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Execution Time (milliseconds)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Round Number',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    displayBenchmarkStats(resultsData) {
+        const statsContainer = document.getElementById('benchmarkStats');
+        const avgTimesDisplay = document.getElementById('avgTimesDisplay');
+        const moveCountsDisplay = document.getElementById('moveCountsDisplay');
+        
+        let avgTimesHTML = '<ul>';
+        let moveCountsHTML = '<ul>';
+        
+        for (const [algorithm, data] of Object.entries(resultsData)) {
+            const avgTime = (data.times.reduce((a, b) => a + b, 0) / data.times.length).toFixed(3);
+            const minTime = Math.min(...data.times).toFixed(3);
+            const maxTime = Math.max(...data.times).toFixed(3);
+            
+            avgTimesHTML += `
+                <li>
+                    <strong>${algorithm}:</strong><br>
+                    Avg: ${avgTime} ms | Min: ${minTime} ms | Max: ${maxTime} ms
+                </li>
+            `;
+            
+            moveCountsHTML += `
+                <li><strong>${algorithm}:</strong> ${data.moves} moves</li>
+            `;
+        }
+        
+        avgTimesHTML += '</ul>';
+        moveCountsHTML += '</ul>';
+        
+        avgTimesDisplay.innerHTML = avgTimesHTML;
+        moveCountsDisplay.innerHTML = moveCountsHTML;
+        statsContainer.style.display = 'grid';
+    }
+    
+    displayBenchmarkTable(resultsData) {
+        const tableContainer = document.getElementById('benchmarkResults');
+        const tableBody = document.getElementById('benchmarkTableBody');
+        const algorithms = Object.keys(resultsData);
+        
+        // Set algorithm headers
+        document.getElementById('algoHeader1').textContent = algorithms[0] || '';
+        document.getElementById('algoHeader2').textContent = algorithms[1] || '';
+        
+        // Clear existing rows
+        tableBody.innerHTML = '';
+        
+        // Create rows for each round
+        for (let i = 0; i < 15; i++) {
+            const row = document.createElement('tr');
+            
+            const roundCell = document.createElement('td');
+            roundCell.textContent = `Round ${i + 1}`;
+            row.appendChild(roundCell);
+            
+            algorithms.forEach(algo => {
+                const timeCell = document.createElement('td');
+                timeCell.textContent = `${resultsData[algo].times[i].toFixed(3)} ms`;
+                row.appendChild(timeCell);
+            });
+            
+            tableBody.appendChild(row);
+        }
+        
+        tableContainer.style.display = 'block';
+    }
+    
+    downloadChartAsImage() {
+        const canvas = document.getElementById('benchmarkChart');
+        const url = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        const diskCount = document.getElementById('benchmarkDiskCount').value;
+        const pegCount = document.getElementById('benchmarkPegCount').value;
+        link.download = `tower_hanoi_benchmark_${diskCount}disks_${pegCount}pegs.png`;
+        link.href = url;
+        link.click();
+        this.showNotification('📥 Chart downloaded successfully!', 'success');
+    }
 }
 
 /**
@@ -1425,7 +1701,7 @@ function initializeInteractiveGame() {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new TowerOfHanoiApp();
+    window.app = new TowerOfHanoiApp();
     
     // Initialize interactive game if container exists
     setTimeout(initializeInteractiveGame, 100);
