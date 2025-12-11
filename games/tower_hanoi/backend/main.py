@@ -121,11 +121,18 @@ class DatabaseManager:
                 if query.strip().upper().startswith('SELECT'):
                     return cursor.fetchall()
                 else:
+                    connection.commit()
                     return cursor.lastrowid
+            
+            # Commit for INSERT, UPDATE, DELETE operations
+            if not query.strip().upper().startswith('SELECT'):
+                connection.commit()
             
             return cursor.lastrowid
             
         except Error as e:
+            if connection:
+                connection.rollback()
             raise HTTPException(status_code=500, detail=f"Database error: {e}")
         finally:
             if connection and connection.is_connected():

@@ -1200,11 +1200,12 @@ class InteractiveTowerGame {
                             <option value="4" ${this.pegCount === 4 ? 'selected' : ''}>4 Pegs</option>
                         </select>
                         <select id="gameDiskCount">
-                            <option value="3" ${this.diskCount === 3 ? 'selected' : ''}>3 Disks</option>
-                            <option value="4" ${this.diskCount === 4 ? 'selected' : ''}>4 Disks</option>
                             <option value="5" ${this.diskCount === 5 ? 'selected' : ''}>5 Disks</option>
                             <option value="6" ${this.diskCount === 6 ? 'selected' : ''}>6 Disks</option>
                             <option value="7" ${this.diskCount === 7 ? 'selected' : ''}>7 Disks</option>
+                            <option value="8" ${this.diskCount === 8 ? 'selected' : ''}>8 Disks</option>
+                            <option value="9" ${this.diskCount === 9 ? 'selected' : ''}>9 Disks</option>
+                            <option value="10" ${this.diskCount === 10 ? 'selected' : ''}>10 Disks</option>
                         </select>
                         <button class="btn btn-primary" onclick="interactiveGame.startGame()">Start Game</button>
                     </div>
