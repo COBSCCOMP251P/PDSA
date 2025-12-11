@@ -788,9 +788,70 @@ def hanoi_3peg_helper(n, src, dst, aux, moves_list):
 
 
 def hanoi_4peg_dp(n, source='A', dest='D', aux1='B', aux2='C'):
-    """Dynamic Programming approach for 4-peg Tower of Hanoi"""
-    # Simplified version - returns similar to Frame-Stewart
-    return hanoi_4peg_frame_stewart(n, source, dest, aux1, aux2)
+    """
+    Dynamic Programming approach for 4-peg Tower of Hanoi
+    Uses bottom-up DP table to find optimal k-split and generates move sequence
+    """
+    moves = []
+    
+    # Build DP table for minimum moves
+    dp = [0] * (n + 1)
+    optimal_k = [0] * (n + 1)
+    
+    # Base cases
+    dp[0] = 0
+    dp[1] = 1
+    
+    # Fill DP table bottom-up
+    for i in range(2, n + 1):
+        min_moves = float('inf')
+        best_k = 1
+        
+        for k in range(1, i):
+            # Moves: k disks to aux (4-peg) + (i-k) disks to dest (3-peg) + k disks aux to dest (4-peg)
+            moves_needed = 2 * dp[k] + ((1 << (i - k)) - 1)  # 2^(i-k) - 1
+            
+            if moves_needed < min_moves:
+                min_moves = moves_needed
+                best_k = k
+        
+        dp[i] = min_moves
+        optimal_k[i] = best_k
+    
+    def solve_with_dp(n_disks, src, dst, a1, a2):
+        """Recursively solve using precomputed optimal splits"""
+        if n_disks == 0:
+            return
+        
+        if n_disks == 1:
+            moves.append(f"{src}->{dst}")
+            return
+        
+        # Use precomputed optimal k
+        k = optimal_k[n_disks]
+        
+        # Step 1: Move top k disks to first auxiliary peg using all 4 pegs
+        solve_with_dp(k, src, a1, a2, dst)
+        
+        # Step 2: Move bottom (n-k) disks to destination using 3 pegs (classical Hanoi)
+        def move_3peg_classical(m, s, d, aux):
+            if m == 0:
+                return
+            if m == 1:
+                moves.append(f"{s}->{d}")
+                return
+            move_3peg_classical(m - 1, s, aux, d)
+            moves.append(f"{s}->{d}")
+            move_3peg_classical(m - 1, aux, d, s)
+        
+        move_3peg_classical(n_disks - k, src, dst, a2)
+        
+        # Step 3: Move k disks from auxiliary to destination using all 4 pegs
+        solve_with_dp(k, a1, dst, src, a2)
+    
+    # Execute the solution
+    solve_with_dp(n, source, dest, aux1, aux2)
+    return moves
 
 
 # Error Handlers
