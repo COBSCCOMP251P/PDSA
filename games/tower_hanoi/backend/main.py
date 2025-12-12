@@ -22,6 +22,47 @@ from algorithms import AlgorithmRunner, solve_tower_of_hanoi
 from validator import GameValidator, parse_move_sequence
 
 
+# ===== HELPER FUNCTIONS =====
+def calculate_4peg_optimal_moves(n: int) -> int:
+    """
+    Calculate optimal number of moves for 4-peg Tower of Hanoi using Frame-Stewart algorithm.
+    Uses dynamic programming approach to find minimum moves.
+    
+    Args:
+        n: Number of disks
+    
+    Returns:
+        Minimum number of moves needed
+    
+    Time Complexity: O(n²)
+    Space Complexity: O(n)
+    """
+    if n <= 0:
+        return 0
+    if n == 1:
+        return 1
+    if n == 2:
+        return 3
+    
+    # DP array to store minimum moves for each disk count
+    dp = [0] * (n + 1)
+    dp[1] = 1  # Base case: 1 disk requires 1 move
+    dp[2] = 3  # Base case: 2 disks requires 3 moves
+    
+    # For each disk count from 3 to n
+    for i in range(3, n + 1):
+        dp[i] = float('inf')
+        
+        # Try splitting at different positions k (1 to i-1)
+        # Move k disks to auxiliary peg, move remaining i-k disks to destination (3-peg style),
+        # then move k disks from auxiliary to destination
+        for k in range(1, i):
+            moves = 2 * dp[k] + (2 ** (i - k) - 1)
+            dp[i] = min(dp[i], moves)
+    
+    return dp[n]
+
+
 # Pydantic Models for API
 class CreateRoundRequest(BaseModel):
     """Request model for creating a new round"""
@@ -424,19 +465,76 @@ async def save_game_result(
     game_result: GameResult,
     db: DatabaseManager = Depends(get_db_manager)
 ):
-    """Save a completed game result to the HanoiResults table"""
+    """
+    Save a completed game result to the HanoiResults table.
+    Validates input, calculates optimal moves for both 3-peg and 4-peg solutions,
+    and saves player name along with correct response.
+    """
     
     try:
-        print(f"Saving game result: {game_result}")
+        # ===== INPUT VALIDATION =====
+        if not game_result.player_name or not game_result.player_name.strip():
+            raise HTTPException(
+                status_code=400, 
+                detail="Player name is required and cannot be empty"
+            )
         
-        # Calculate optimal moves (only accurate for 3-peg)
-        optimal_moves = (2 ** game_result.disk_count) - 1
+        if len(game_result.player_name) > 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Player name must be 100 characters or less"
+            )
+        
+        if game_result.disk_count < 1 or game_result.disk_count > 20:
+            raise HTTPException(
+                status_code=400,
+                detail="Disk count must be between 1 and 20"
+            )
+        
+        if game_result.peg_count not in [3, 4]:
+            raise HTTPException(
+                status_code=400,
+                detail="Peg count must be either 3 or 4"
+            )
+        
+        if game_result.moves < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Move count must be at least 1"
+            )
+        
+        if game_result.time_taken < 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Time taken cannot be negative"
+            )
+        
+        print(f"✓ Validation passed - Saving game result: {game_result}")
+        
+        # ===== CALCULATE OPTIMAL MOVES =====
+        # For 3-peg: Use classic formula 2^n - 1
+        # For 4-peg: Use Frame-Stewart algorithm (DP optimal)
+        if game_result.peg_count == 3:
+            optimal_moves = (2 ** game_result.disk_count) - 1
+            algorithm_name = "3-Peg Classic"
+        else:  # 4-peg
+            # Calculate optimal moves using Frame-Stewart/Dynamic Programming
+            optimal_moves = calculate_4peg_optimal_moves(game_result.disk_count)
+            algorithm_name = "4-Peg Frame-Stewart"
+        
+        print(f"✓ Optimal moves for {game_result.disk_count} disks, {game_result.peg_count} pegs: {optimal_moves}")
+        
         current_time = datetime.now()
         
-        # For 4-peg games, use Frame-Stewart algorithm approximation
-        # But for interactive games, we mark as correct if they completed the puzzle
-        # since they successfully moved all disks to the target peg
-        is_correct = True  # Interactive games that complete are always correct
+        # Determine if solution is correct
+        # Player is correct if they completed the puzzle (moved all disks)
+        is_correct = True
+        
+        # Determine if solution is optimal
+        is_optimal = game_result.moves == optimal_moves
+        
+        # Calculate efficiency percentage
+        efficiency = min(optimal_moves / game_result.moves * 100, 100.0) if game_result.moves > 0 else 0
         
         # Step 1: Find or create player
         player_query = "SELECT player_id FROM Players WHERE player_name = %s"
@@ -587,19 +685,112 @@ async def validate_moves(
     request: ValidateRequest,
     validator: GameValidator = Depends(get_game_validator)
 ):
-    """Validate a move sequence without saving to database"""
+    """
+    Validate a move sequence without saving to database.
+    Validates input parameters, move sequence format, and solution correctness.
+    """
     
-    if request.peg_count not in [3, 4]:
-        raise HTTPException(status_code=400, detail="peg_count must be 3 or 4")
-    
-    validation_result = validator.validate_submission(
-        n_disks=request.n_disks,
-        peg_count=request.peg_count,
-        move_sequence=request.move_sequence,
-        declared_moves=request.declared_moves
-    )
-    
-    return validation_result
+    try:
+        # ===== INPUT VALIDATION =====
+        if request.n_disks < 1 or request.n_disks > 20:
+            raise HTTPException(
+                status_code=400, 
+                detail="Disk count must be between 1 and 20"
+            )
+        
+        if request.peg_count not in [3, 4]:
+            raise HTTPException(
+                status_code=400, 
+                detail="Peg count must be either 3 or 4"
+            )
+        
+        if not request.move_sequence or len(request.move_sequence) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Move sequence cannot be empty"
+            )
+        
+        if request.declared_moves < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Declared moves must be at least 1"
+            )
+        
+        if request.declared_moves != len(request.move_sequence):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Declared moves ({request.declared_moves}) does not match actual move sequence length ({len(request.move_sequence)})"
+            )
+        
+        # ===== VALIDATE MOVE FORMAT =====
+        for i, move in enumerate(request.move_sequence):
+            if not isinstance(move, str) or '->' not in move:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid move format at position {i}: '{move}'. Expected format 'X->Y'"
+                )
+            
+            parts = move.split('->')
+            if len(parts) != 2:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid move format at position {i}: '{move}'. Expected format 'X->Y'"
+                )
+            
+            try:
+                source = int(parts[0])
+                dest = int(parts[1])
+                
+                if source < 1 or source > request.peg_count:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid source peg {source} in move {i}. Must be between 1 and {request.peg_count}"
+                    )
+                
+                if dest < 1 or dest > request.peg_count:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid destination peg {dest} in move {i}. Must be between 1 and {request.peg_count}"
+                    )
+                
+                if source == dest:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid move at position {i}: source and destination cannot be the same ({source})"
+                    )
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid peg numbers in move {i}: '{move}'. Pegs must be integers"
+                )
+        
+        print(f"✓ Validation request - Disks: {request.n_disks}, Pegs: {request.peg_count}, Moves: {len(request.move_sequence)}")
+        
+        # ===== VALIDATE SOLUTION =====
+        validation_result = validator.validate_submission(
+            n_disks=request.n_disks,
+            peg_count=request.peg_count,
+            move_sequence=request.move_sequence,
+            declared_moves=request.declared_moves
+        )
+        
+        print(f"✓ Validation result: {validation_result}")
+        
+        return validation_result
+        
+    except HTTPException as he:
+        # Re-raise HTTP exceptions (validation errors)
+        print(f"❌ Validation error: {he.detail}")
+        raise
+        
+    except Exception as e:
+        print(f"❌ Error validating moves: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to validate moves: {str(e)}"
+        )
 
 
 @app.get("/api/health")
@@ -619,27 +810,50 @@ async def health_check(db_manager: DatabaseManager = Depends(get_db_manager)):
 @app.post("/api/benchmark")
 async def run_benchmark(data: dict):
     """
-    Run algorithm benchmarks and return execution times
-    Executes algorithms based on disk count and peg count
+    Run algorithm benchmarks and return execution times.
+    Compares 3-peg (recursive/iterative) and 4-peg (Frame-Stewart/DP) algorithms.
     """
     import time
     
-    n_disks = data.get('n_disks', 5)
-    peg_count = data.get('peg_count', 3)
-    
-    # Validate inputs
-    if not (3 <= n_disks <= 10):
-        raise HTTPException(status_code=400, detail="n_disks must be between 3 and 10")
-    if peg_count not in [3, 4]:
-        raise HTTPException(status_code=400, detail="peg_count must be 3 or 4")
-    
-    results = []
-    
     try:
+        # ===== INPUT VALIDATION =====
+        n_disks = data.get('n_disks', 5)
+        peg_count = data.get('peg_count', 3)
+        
+        if not isinstance(n_disks, int):
+            raise HTTPException(
+                status_code=400, 
+                detail="n_disks must be an integer"
+            )
+        
+        if not isinstance(peg_count, int):
+            raise HTTPException(
+                status_code=400,
+                detail="peg_count must be an integer"
+            )
+        
+        if n_disks < 1 or n_disks > 20:
+            raise HTTPException(
+                status_code=400, 
+                detail="n_disks must be between 1 and 20"
+            )
+        
+        if peg_count not in [3, 4]:
+            raise HTTPException(
+                status_code=400, 
+                detail="peg_count must be 3 or 4"
+            )
+        
+        print(f"✓ Running benchmark - Disks: {n_disks}, Pegs: {peg_count}")
+        
+        results = []
+        
+        # ===== RUN ALGORITHMS =====
         if peg_count == 3:
             # Run 3-peg algorithms
             
             # Recursive 3-Peg
+            print(f"  - Testing Recursive 3-Peg...")
             start_time = time.perf_counter()
             recursive_moves = hanoi_3peg_recursive(n_disks)
             end_time = time.perf_counter()
@@ -648,10 +862,13 @@ async def run_benchmark(data: dict):
             results.append({
                 'algorithm': 'Recursive 3-Peg',
                 'runtime_ms': round(runtime_ms, 4),
-                'moves': len(recursive_moves)
+                'moves': len(recursive_moves),
+                'optimal': True
             })
+            print(f"    ✓ Completed in {runtime_ms:.4f}ms, {len(recursive_moves)} moves")
             
             # Iterative 3-Peg
+            print(f"  - Testing Iterative 3-Peg...")
             start_time = time.perf_counter()
             iterative_moves = hanoi_3peg_iterative(n_disks)
             end_time = time.perf_counter()
@@ -660,13 +877,16 @@ async def run_benchmark(data: dict):
             results.append({
                 'algorithm': 'Iterative 3-Peg',
                 'runtime_ms': round(runtime_ms, 4),
-                'moves': len(iterative_moves)
+                'moves': len(iterative_moves),
+                'optimal': True
             })
+            print(f"    ✓ Completed in {runtime_ms:.4f}ms, {len(iterative_moves)} moves")
             
         else:  # peg_count == 4
             # Run 4-peg algorithms
             
             # Frame-Stewart 4-Peg
+            print(f"  - Testing Frame-Stewart 4-Peg...")
             start_time = time.perf_counter()
             frame_stewart_moves = hanoi_4peg_frame_stewart(n_disks)
             end_time = time.perf_counter()
@@ -675,30 +895,51 @@ async def run_benchmark(data: dict):
             results.append({
                 'algorithm': 'Frame-Stewart 4-Peg',
                 'runtime_ms': round(runtime_ms, 4),
-                'moves': len(frame_stewart_moves)
+                'moves': len(frame_stewart_moves),
+                'optimal': True
             })
+            print(f"    ✓ Completed in {runtime_ms:.4f}ms, {len(frame_stewart_moves)} moves")
             
-            # Dynamic Programming 4-Peg (if available)
-            try:
-                start_time = time.perf_counter()
-                dp_moves = hanoi_4peg_dp(n_disks)
-                end_time = time.perf_counter()
-                runtime_ms = (end_time - start_time) * 1000
-                
-                results.append({
-                    'algorithm': 'Dynamic Programming 4-Peg',
-                    'runtime_ms': round(runtime_ms, 4),
-                    'moves': len(dp_moves)
-                })
-            except:
-                # If DP not implemented, skip
-                pass
+            # Dynamic Programming 4-Peg
+            print(f"  - Testing DP 4-Peg...")
+            start_time = time.perf_counter()
+            dp_moves = hanoi_4peg_dp(n_disks)
+            end_time = time.perf_counter()
+            runtime_ms = (end_time - start_time) * 1000
+            
+            results.append({
+                'algorithm': 'Dynamic Programming 4-Peg',
+                'runtime_ms': round(runtime_ms, 4),
+                'moves': len(dp_moves),
+                'optimal': True
+            })
+            print(f"    ✓ Completed in {runtime_ms:.4f}ms, {len(dp_moves)} moves")
         
-        return results
+        print(f"✅ Benchmark completed successfully!")
+        
+        return {
+            'success': True,
+            'n_disks': n_disks,
+            'peg_count': peg_count,
+            'results': results
+        }
+        
+    except HTTPException as he:
+        # Re-raise HTTP exceptions (validation errors)
+        print(f"❌ HTTP Exception: {he.detail}")
+        raise
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Benchmark error: {str(e)}")
+        print(f"❌ Error running benchmark: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to run benchmark: {str(e)}"
+        )
 
+
+# ===== ALGORITHM IMPLEMENTATIONS =====
 
 def hanoi_3peg_recursive(n, source='A', dest='C', aux='B'):
     """Classic recursive Tower of Hanoi algorithm for 3 pegs"""
