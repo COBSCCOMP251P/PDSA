@@ -924,7 +924,16 @@ class TowerOfHanoiApp {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const roundResults = await response.json();
+                const data = await response.json();
+                
+                // Handle new API response format {success: true, results: [...]}
+                const roundResults = data.results || data;
+                
+                // Validate that roundResults is an array
+                if (!Array.isArray(roundResults)) {
+                    console.error('Unexpected response format:', data);
+                    throw new Error('Invalid benchmark response format');
+                }
                 
                 // Store results for each algorithm
                 roundResults.forEach(result => {
