@@ -532,6 +532,8 @@ let animationState = {
     algorithm: 'bfs' // Track which algorithm is being visualized
 };
 
+
+
 /**
  * Show path visualization section
  * @param {string} algorithmType - 'bfs' or 'dfs'

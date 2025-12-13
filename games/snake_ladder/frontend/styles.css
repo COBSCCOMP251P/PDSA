@@ -633,6 +633,8 @@ header h1 {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* Chart panel removed */
+
 /* Player position indicator */
 .cell.player-position {
     background: #ffd700 !important;
