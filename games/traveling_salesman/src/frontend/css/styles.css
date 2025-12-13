@@ -24,4 +24,3 @@ table td {
 .input {
   @apply w-full rounded-lg bg-white border border-blue-200 px-3 py-2 text-slate-900 focus:border-sky-500 focus:outline-none; /* Tailwind apply */
 }
-

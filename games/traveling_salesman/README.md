@@ -20,7 +20,4 @@ Vanilla JS + Tailwind frontend with a FastAPI backend and MySQL storage for a st
 2) Game page: pick cities (A–J), generate matrix, set visit order, compute your route.
 3) Results page: compare against brute force, nearest neighbor, and DP; save to DB.
 
-## Notes
-- CORS is open for easy local testing.
-- Score formula: `max(10, int((optimal_distance / player_distance) * 100))`.
-- Matrix is always 10×10, symmetric, 50–100 weights, and zero diagonal.
+
