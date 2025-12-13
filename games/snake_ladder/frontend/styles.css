@@ -372,6 +372,25 @@ header h1 {
     flex-wrap: wrap;
 }
 
+/* Algorithm visualization buttons - BFS (blue) and DFS (red/pink) */
+#showBFSVisualizationBtn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#showBFSVisualizationBtn:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+    transform: translateY(-2px);
+}
+
+#showDFSVisualizationBtn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+#showDFSVisualizationBtn:hover {
+    background: linear-gradient(135deg, #e082ea 0%, #e4465b 100%);
+    transform: translateY(-2px);
+}
+
 /* Leaderboard */
 .leaderboard-table {
     width: 100%;
@@ -486,4 +505,184 @@ header h1 {
 
 .pulse {
     animation: pulse 0.5s ease-in-out;
+}
+
+/* Path Visualization Styles */
+.path-info {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    color: #666;
+}
+
+/* Animation Control Panel - Groups dice and control buttons together */
+.animation-control-panel {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 15px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid #dee2e6;
+}
+
+.dice-display {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.dice-container {
+    text-align: center;
+}
+
+.dice {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5em;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin: 0 auto 10px;
+    transition: transform 0.3s ease;
+}
+
+/* Dice coloring per algorithm to avoid confusion */
+.dice-bfs {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.dice-dfs {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.dice-label-bfs {
+    color: #4b51c1;
+}
+
+.dice-label-dfs {
+    color: #d0486a;
+}
+
+.dice.rolling {
+    animation: diceRoll 0.5s ease-in-out;
+}
+
+@keyframes diceRoll {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(90deg) scale(1.1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    75% { transform: rotate(270deg) scale(1.1); }
+}
+
+#diceLabel {
+    font-weight: 600;
+    color: #667eea;
+    margin: 0;
+}
+
+.movement-info {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.info-value {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 1.1em;
+}
+
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.control-buttons .btn {
+    padding: 10px 20px;
+    font-size: 0.95em;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.control-buttons .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Player position indicator */
+.cell.player-position {
+    background: #ffd700 !important;
+    border: 3px solid #ff6b6b;
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+    animation: playerPulse 1s infinite;
+}
+
+@keyframes playerPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(255, 107, 107, 0.8);
+    }
+}
+
+.cell.visited {
+    background: #d4edda !important;
+    border-color: #28a745;
+}
+
+.cell.next-move {
+    background: #fff3cd !important;
+    border: 2px dashed #ffc107;
+    animation: nextMoveBlink 1s infinite;
+}
+
+@keyframes nextMoveBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Status indicators */
+.info-value.status-moving {
+    color: #ff6b6b;
+    animation: pulse 1s infinite;
+}
+
+.info-value.status-ladder {
+    color: #28a745;
+}
+
+.info-value.status-snake {
+    color: #dc3545;
+}
+
+.info-value.status-complete {
+    color: #17a2b8;
+    font-weight: bold;
 }

@@ -122,34 +122,29 @@ async def initialize_game(request: InitGameRequest):
         # Generate board
         board = SnakeLadderBoard(request.board_size)
         
-        # Calculate minimum moves using both algorithms
+        # Calculate minimum moves using BFS only (DFS will run on answer submission)
+        # BFS is fast and guarantees the shortest path
         bfs_result = find_min_moves_bfs(board)
-        dfs_result = find_min_moves_dfs(board)
         
-        # Use BFS result as the correct answer (BFS guarantees shortest path)
+        # Use BFS result as the correct answer
         correct_answer = bfs_result.min_moves
         
         # Generate answer choices
         answer_choices = generate_answer_choices(correct_answer)
         
-        # Save algorithm performance to database
+        # Save BFS algorithm performance to database
         db_handler.save_algorithm_performance(
             session_id, board.n, "bfs", 
             bfs_result.execution_time_ms, bfs_result.min_moves, board.to_dict()
         )
-        db_handler.save_algorithm_performance(
-            session_id, board.n, "dfs",
-            dfs_result.execution_time_ms, dfs_result.min_moves, board.to_dict()
-        )
         
-        # Store game state
+        # Store game state (DFS result will be calculated on submission)
         active_games[session_key] = {
             "session_id": session_id,
             "player_id": player_id,
             "player_name": request.player_name,
             "board": board,
             "bfs_result": bfs_result,
-            "dfs_result": dfs_result,
             "correct_answer": correct_answer,
             "answer_choices": answer_choices
         }
@@ -186,6 +181,15 @@ async def submit_answer(request: SubmitAnswerRequest):
         
         game_state = active_games[session_key]
         
+        # Calculate DFS result now (when answer is submitted)
+        dfs_result = find_min_moves_dfs(game_state["board"])
+        
+        # Save DFS algorithm performance to database
+        db_handler.save_algorithm_performance(
+            game_state["session_id"], game_state["board"].n, "dfs",
+            dfs_result.execution_time_ms, dfs_result.min_moves, game_state["board"].to_dict()
+        )
+        
         # Validate answer
         is_correct = validate_answer(request.player_answer, game_state["correct_answer"])
         
@@ -219,7 +223,7 @@ async def submit_answer(request: SubmitAnswerRequest):
             correct_answer=game_state["correct_answer"],
             player_answer=request.player_answer,
             bfs_result=game_state["bfs_result"].to_dict(),
-            dfs_result=game_state["dfs_result"].to_dict(),
+            dfs_result=dfs_result.to_dict(),
             message=message,
             player_stats=player_stats
         )

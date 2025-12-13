@@ -92,6 +92,58 @@
             </div>
         </section>
 
+        <!-- Path Visualization Section -->
+        <section id="pathVisualizationSection" class="section hidden">
+            <div class="card">
+                <h2 id="visualizationTitle">🎲 Algorithm Path Visualization</h2>
+                <div id="pathInfo" class="path-info">
+                    <p>Watch how the algorithm finds the shortest path!</p>
+                </div>
+                
+                <!-- Animation Control Panel -->
+                <div class="animation-control-panel">
+                    <!-- Dice Display -->
+                    <div id="diceDisplay" class="dice-display">
+                        <div class="dice-container">
+                            <div id="diceValue" class="dice">?</div>
+                            <p id="diceLabel">Dice Roll</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Control Buttons -->
+                    <div class="control-buttons">
+                        <button id="startAnimationBtn" class="btn btn-primary">▶️ Start</button>
+                        <button id="pauseAnimationBtn" class="btn btn-secondary" disabled>⏸️ Pause</button>
+                        <button id="resetAnimationBtn" class="btn btn-secondary">🔄 Reset</button>
+                        <button id="closePathBtn" class="btn btn-secondary">✖️ Close</button>
+                    </div>
+                </div>
+                
+                <!-- Movement Info -->
+                <div id="movementInfo" class="movement-info">
+                    <div class="info-row">
+                        <span class="info-label">Current Position:</span>
+                        <span id="currentPos" class="info-value">1</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Next Position:</span>
+                        <span id="nextPos" class="info-value">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Throws Count:</span>
+                        <span id="throwsCount" class="info-value">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span id="moveStatus" class="info-value">Ready</span>
+                    </div>
+                </div>
+                
+                <!-- Board Visualization with Animation -->
+                <div id="animatedBoardContainer" class="board-container"></div>
+            </div>
+        </section>
+
         <!-- Result Section -->
         <section id="resultSection" class="section hidden">
             <div class="card result-card">
@@ -115,6 +167,8 @@
                 </div>
                 
                 <div class="action-buttons">
+                    <button id="showBFSVisualizationBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🎬 Watch BFS Algorithm</button>
+                    <button id="showDFSVisualizationBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">🎬 Watch DFS Algorithm</button>
                     <button id="playAgainBtn" class="btn btn-primary">Play Again</button>
                     <button id="viewLeaderboardBtn" class="btn btn-secondary">View Leaderboard</button>
                 </div>
