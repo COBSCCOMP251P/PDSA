@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Traffic Flow Simulation</title>
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+    <style>
+    * {
+        box-sizing: border-box;
+    }
+    body {
+        margin: 0;
+        font-family: 'Consolas', monospace; /* Game/Terminal font feel */
+        color: #00ff00; /* Neon green text */
+        background-color: #0d1117; /* Very dark background */
+        min-height: 100vh;
+        padding: 0;
+    }
+    #app-container {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    /* -----------------------------------
+       HEADER
+       ----------------------------------- */
+    #header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 2px solid #005500; /* Green separator */
+    }
+    h1 {
+        font-size: 1.8em;
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00; /* Glow effect */
+        margin: 0;
+    }
+    .nav-btn {
+        background: transparent;
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        padding: 8px 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-left: 10px;
+    }
+    .nav-btn:hover {
+        background: #00ff001a;
+        box-shadow: 0 0 8px #00ff00;
+    }
+
+    /* -----------------------------------
+       MAIN GRID LAYOUT
+       ----------------------------------- */
+    #main-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 20px;
+    }
+
+    /* -----------------------------------
+       PANEL STYLING (The Game Containers)
+       ----------------------------------- */
+    .panel {
+        background-color: #161b22; /* Darker panel background */
+        border: 1px solid #005500;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.1); /* Subtle green glow */
+    }
+    .panel-title {
+        font-size: 1.1em;
+        color: #00ff00;
+        border-bottom: 1px dashed #005500;
+        padding-bottom: 10px;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+
+    /* -----------------------------------
+       INPUT & CONTROLS (Panel 1)
+       ----------------------------------- */
+    #controls-container {
+        display: grid;
+        grid-template-columns: 150px 1fr; /* Label column and Input column */
+        gap: 10px 20px;
+        align-items: center;
+    }
+    label {
+        color: #00cc00;
+        font-size: 0.9em;
+    }
+    input[type="text"], input[type="number"], .static-input-display {
+        background-color: #24282e;
+        border: 1px solid #005500;
+        color: #00ff00;
+        padding: 8px;
+        border-radius: 3px;
+        font-family: inherit;
+    }
+    #run-btn {
+        grid-column: 1 / 3; /* Button spans both columns */
+        background-color: #cc0000; /* Use a dramatic color like red for action */
+        color: white;
+        font-size: 1.1em;
+        padding: 12px;
+        border: none;
+        box-shadow: 0 0 8px #ff0000;
+        cursor: pointer;
+    }
+    #run-btn:hover {
+        background-color: #ff3333;
+    }
+
+    /* -----------------------------------
+       VISUALIZATION (Panel 2)
+       ----------------------------------- */
+    #cy {
+        width: 100%;
+        height: 50vh; /* Adjust height for the panel */
+        background-color: #101419; /* Inner dark background for the graph */
+        border: 1px solid #005500;
+        border-radius: 3px;
+    }
+
+    /* -----------------------------------
+       RESULTS & LOG (Panel 3)
+       ----------------------------------- */
+    #detailed-results p {
+        margin: 5px 0;
+        font-size: 0.9em;
+        color: #ddd;
+    }
+    .hint {
+        color: #ff9900; /* Warning/Hint color */
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px dashed #005500;
+    }
+    .tab-controls {
+        margin-bottom: 15px;
+    }
+    .tab-btn {
+        background: transparent;
+        border: 1px solid #005500;
+        color: #00ff00;
+        padding: 5px 10px;
+        cursor: pointer;
+        margin-right: 5px;
+    }
+    .tab-btn.active {
+        background: #005500;
+        font-weight: bold;
+    }
+
+    /* -----------------------------------
+       LEADERBOARD (Panel 4)
+       ----------------------------------- */
+    #leaderboard-list {
+        list-style: none;
+        padding: 0;
+    }
+    #leaderboard-list li {
+        padding: 5px 0;
+        border-bottom: 1px dotted #003300;
+        display: flex;
+        justify-content: space-between;
+        color: #ddd;
+    }
+    .time {
+        color: #ff9900;
+    }
+
+    /* -----------------------------------
+       FOOTER
+       ----------------------------------- */
+    footer {
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.8em;
+        color: #005500;
+        border-top: 1px solid #005500;
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+    <div id="app-container">
+        <header id="header-bar">
+            <h1>TRAFFIC-FLOW SIMULATOR: CYBERNET EDITION</h1>
+            <nav>
+                <button class="nav-btn">Info</button>
+                <!-- <button class="nav-btn">Leaderboard</button>  -->
+                <button class="nav-btn" onclick="fetchAndDisplayLeaderboard()">Leaderboard</button>
+            </nav>
+        </header>
+
+        <main id="main-grid">
+            <div class="panel" id="input-panel">
+                <h2 class="panel-title">NODE // INPUT & AUGMENT.</h2>
+                <div id="controls-container">
+                    <label>PILOT NAME:</label>
+                    <input type="text" id="player-name" placeholder="Enter your name" value="Player 1" required>
+
+                    <label>MAX-FLOW GUESS:</label>
+                    <input type="number" id="max-flow-guess" placeholder="Your guess" required>
+                    
+                    <button id="run-btn" onclick="initGraph()">RUN SIMULATION</button>
+                    
+                    <label>GAME STATUS:</label>
+                    <span id="game-status-input" class="static-input-display">Ready!</span>
+                </div>
+            </div>
+
+            <div class="panel" id="vis-panel">
+                <h2 class="panel-title">CYBERNETIC FLOW VISULIZER</h2>
+                <div id="cy"></div>
+            </div>
+
+            <div class="panel" id="results-log-panel">
+                <h2 class="panel-title">SIMULATION RESULTS & LOG</h2>
+                <div class="tab-controls">
+                    <button class="tab-btn active">Latest Run</button>
+                    <button class="tab-btn">History</button>
+                </div>
+                <div id="detailed-results">
+                    <p>Status: <span id="game-status">Awaiting input...</span></p>
+                    <p>Player: <span id="player-info">N/A</span></p>
+                    <p>Max Flow (Edmonds-Karp): <span id="max-flow-ek">N/A</span> (<span id="runtime-ek">N/A</span>)</p>
+                    <p>Max Flow (Dinic's): <span id="max-flow-dinic">N/A</span> (<span id="runtime-dinic">N/A</span>)</p>
+                    <p class="hint">Info: MIN-CUT is **${simulationData.maxFlowEK}**.</p>
+                </div>
+            </div>
+
+            <div class="panel" id="leaderboard-panel">
+                <h2 class="panel-title">GLOBAL PILOT RANKINGS</h2>
+                <ul id="leaderboard-list">
+                    <!-- <li>1. Max Iso <span class="time">18.65 ms</span></li>
+                    <li>2. Spot Pilot <span class="time">18.85 ms</span></li> -->
+                    <li>Click Leaderboard to see... </li>
+                </ul>
+            </div>
+        </main>
+    </div>
+    <footer>&copy; 2023 PDSA Group Project</footer>
+<script src="/traffic-static/traffic.js"></script>
+</html>

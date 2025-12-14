@@ -5,6 +5,7 @@
 -- CREATE DATABASE pdsa_games;
 -- USE pdsa_games;
 
+
 -- Players table (shared across all games)
 CREATE TABLE IF NOT EXISTS Players (
     player_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,22 +64,50 @@ CREATE TABLE IF NOT EXISTS SnakeLadderResults (
     INDEX idx_algorithm_type (algorithm_type)
 );
 
--- Traffic Simulation Results (Member 2)
+-- Traffic Simulation Results (Sohan - Member 2)
 CREATE TABLE IF NOT EXISTS TrafficFlowResults (
     result_id INT AUTO_INCREMENT PRIMARY KEY,
     session_id INT NOT NULL,
+    player_id INT NULL, 
     player_name VARCHAR(100) NOT NULL,
-    algorithm_type ENUM('ford_fulkerson', 'edmonds_karp') NOT NULL,
-    player_answer INT NOT NULL,
-    correct_answer INT NOT NULL,
-    is_correct BOOLEAN NOT NULL,
-    execution_time_ms DECIMAL(10,3) NOT NULL,
-    network_config JSON, -- Store capacity configuration
-    flow_paths JSON, -- Store flow paths found
+    -- Game-Specific Input/Output
+    player_answer INT NOT NULL,               -- Player's Max Flow Guess (from group schema)
+    max_flow_guess INT NOT NULL,              -- Duplicate of player_answer for clarity (optional)
+    correct_answer INT NOT NULL,              -- Actual Max Flow (from group schema)
+    max_flow_actual INT NOT NULL,             -- Duplicate of correct_answer for clarity (optional)
+    is_correct BOOLEAN NOT NULL,              -- Did player's guess match correct_answer?
+    win_status ENUM('Win', 'Draw', 'Loss') NOT NULL, -- Your custom status
+    algorithm_type ENUM('ford_fulkerson', 'edmonds_karp', 'dinic') NOT NULL, -- Updated to include Dinic's
+    -- Performance Tracking
+    runtime_ek_ms DECIMAL(10,3) NOT NULL,     -- Edmonds-Karp execution time (used group's DECIMAL(10,3))
+    max_flow_dinic INT NULL,                  -- Result from Dinic's
+    runtime_dinic_ms DECIMAL(10,3) NULL,      -- Dinic's execution time
+    network_snapshot JSON,                    -- Stores graph data (renamed from network_config)
+    flow_paths JSON NULL,                          -- Stores flow paths found (from group schema)
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES GameSessions(session_id) ON DELETE CASCADE,
     INDEX idx_algorithm_type (algorithm_type)
 );
+CREATE OR REPLACE VIEW game_rounds AS
+SELECT 
+    result_id AS round_id, 
+    player_name, 
+    player_answer AS max_flow_guess,
+    correct_answer AS max_flow_actual, 
+    win_status, 
+    submitted_at AS round_timestamp
+FROM TrafficFlowResults;
+
+CREATE OR REPLACE VIEW performance_logs AS
+SELECT
+    tfr.result_id AS log_id,             -- Maps old PK to new PK
+    tfr.result_id AS round_id,           -- Uses the result_id to match the 'Foreign Key'
+    tfr.correct_answer AS max_flow_ek,   -- The actual max flow is what both EK and Dinic should find
+    tfr.runtime_ek_ms * 1000000 AS runtime_ek_ns, -- Convert ms to your old ns (BIGINT) for code compatibility
+    tfr.max_flow_dinic,
+    tfr.runtime_dinic_ms * 1000000 AS runtime_dinic_ns, -- Convert ms to your old ns (BIGINT)
+    tfr.network_snapshot
+FROM TrafficFlowResults tfr;
 
 -- Traveling Salesman Results (Member 3)
 CREATE TABLE IF NOT EXISTS TSPResults (
