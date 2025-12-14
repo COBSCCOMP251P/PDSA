@@ -1,80 +1,45 @@
+# Eight Queens Validation Module
+# Provides move validation and hint functionality
+
 from typing import List, Tuple, Optional, Set
 from .sequential_solver import EightQueensSolver
 
 
 class EightQueensValidator:
-    """
-    Provides validation and hint functionality for the Eight Queens game.
-    
-    This class contains utility functions that help with:
-    - Validating user moves
-    - Checking partial solutions
-    - Providing hints for next moves
-    - Analyzing board states
-    """
     
     def __init__(self):
         self.board_size = 8
         self.solver = EightQueensSolver()
     
     def is_valid_move(self, current_queens: List[int], row: int, col: int) -> bool:
-        """
-        Check if placing a queen at (row, col) is valid given current board state.
+        # check if placing queen at row,col is valid
         
-        Args:
-            current_queens (List[int]): Current queen positions (-1 for empty)
-            row (int): Target row (0-7)
-            col (int): Target column (0-7)
-            
-        Returns:
-            bool: True if move is valid, False if conflicts exist
-            
-        This function is used when:
-        - User clicks on a square to place a queen
-        - Providing real-time feedback in the UI
-        - Validating user input before accepting the move
-        """
-        # Check if row already has a queen
+        # check if row already has a queen
         if current_queens[row] != -1:
             return False
         
-        # Check for conflicts with existing queens
+        # check for conflicts with existing queens
         for existing_row in range(self.board_size):
             existing_col = current_queens[existing_row]
             
-            # Skip empty rows
             if existing_col == -1:
                 continue
             
-            # Column conflict
+            # column conflict
             if existing_col == col:
                 return False
             
-            # Diagonal conflict
+            # diagonal conflict
             if abs(existing_row - row) == abs(existing_col - col):
                 return False
         
         return True
     
     def get_safe_moves(self, current_queens: List[int]) -> List[Tuple[int, int]]:
-        """
-        Get all safe moves (positions) for the current board state.
-        
-        Args:
-            current_queens (List[int]): Current queen positions
-            
-        Returns:
-            List[Tuple[int, int]]: List of (row, col) tuples for safe moves
-            
-        Use cases:
-        - Highlighting safe squares in green
-        - Providing multiple move options to user
-        - Checking if puzzle is still solvable
-        """
+        # get all safe positions for current board
         safe_moves = []
         
         for row in range(self.board_size):
-            # Skip rows that already have queens
             if current_queens[row] != -1:
                 continue
                 
@@ -85,21 +50,9 @@ class EightQueensValidator:
         return safe_moves
     
     def get_next_hint(self, current_queens: List[int]) -> Optional[Tuple[int, int]]:
-        """
-        Provide a hint for the next best move.
+        # provide hint for next best move
         
-        Args:
-            current_queens (List[int]): Current board state
-            
-        Returns:
-            Optional[Tuple[int, int]]: Next move suggestion or None if no solution
-            
-        Algorithm:
-        1. Find the first empty row
-        2. Use solver to find a valid continuation
-        3. Return the next move from that solution
-        """
-        # Find first empty row
+        # find first empty row
         next_row = -1
         for row in range(self.board_size):
             if current_queens[row] == -1:
@@ -107,37 +60,26 @@ class EightQueensValidator:
                 break
         
         if next_row == -1:
-            # Board is full
             return None
         
-        # Try to extend current partial solution
+        # try to extend current solution
         temp_queens = current_queens[:]
         self.solver.queens = temp_queens
         
-        # Find a valid move for the next row
+        # find valid move for next row
         for col in range(self.board_size):
             if self.is_valid_move(current_queens, next_row, col):
-                # Test if this move leads to a solution
                 temp_queens[next_row] = col
                 if self._can_complete_solution(temp_queens, next_row + 1):
                     return (next_row, col)
                 temp_queens[next_row] = -1
         
-        return None  # No valid continuation found
+        return None
     
     def _can_complete_solution(self, queens: List[int], start_row: int) -> bool:
-        """
-        Check if partial solution can be completed.
-        
-        Args:
-            queens (List[int]): Partial solution
-            start_row (int): Row to start checking from
-            
-        Returns:
-            bool: True if solution can be completed
-        """
+        # check if partial solution can be completed
         if start_row == self.board_size:
-            return True  # All queens placed
+            return True
         
         for col in range(self.board_size):
             if self._is_safe_for_partial(queens, start_row, col):
@@ -149,7 +91,7 @@ class EightQueensValidator:
         return False
     
     def _is_safe_for_partial(self, queens: List[int], row: int, col: int) -> bool:
-        """Helper function for checking safety in partial solutions."""
+        # helper to check safety in partial solutions
         for prev_row in range(row):
             prev_col = queens[prev_row]
             if prev_col == -1:
@@ -160,23 +102,7 @@ class EightQueensValidator:
         return True
     
     def validate_complete_solution(self, queens: List[int]) -> dict:
-        """
-        Validate a complete solution and provide detailed feedback.
-        
-        Args:
-            queens (List[int]): Complete solution to validate
-            
-        Returns:
-            dict: Validation result with details
-            
-        Return format:
-        {
-            'is_valid': bool,
-            'is_complete': bool,
-            'conflicts': List[dict],  # Details of any conflicts found
-            'message': str
-        }
-        """
+        # validate complete solution and return detailed feedback
         result = {
             'is_valid': True,
             'is_complete': True,
@@ -184,7 +110,7 @@ class EightQueensValidator:
             'message': 'Valid solution!'
         }
         
-        # Check completeness
+        # check completeness
         empty_rows = [i for i, pos in enumerate(queens) if pos == -1]
         if empty_rows:
             result['is_complete'] = False
@@ -192,14 +118,14 @@ class EightQueensValidator:
             result['message'] = f'Incomplete solution. Missing queens in rows: {empty_rows}'
             return result
         
-        # Check for conflicts
+        # check for conflicts
         conflicts = []
         for row1 in range(self.board_size):
             col1 = queens[row1]
             for row2 in range(row1 + 1, self.board_size):
                 col2 = queens[row2]
                 
-                # Column conflict
+                # column conflict
                 if col1 == col2:
                     conflicts.append({
                         'type': 'column',
@@ -208,7 +134,7 @@ class EightQueensValidator:
                         'description': f'Queens at ({row1},{col1}) and ({row2},{col2}) are in same column'
                     })
                 
-                # Diagonal conflict
+                # diagonal conflict
                 elif abs(row1 - row2) == abs(col1 - col2):
                     conflicts.append({
                         'type': 'diagonal',
@@ -225,25 +151,11 @@ class EightQueensValidator:
         return result
     
     def get_progress_info(self, current_queens: List[int]) -> dict:
-        """
-        Get information about current progress.
-        
-        Args:
-            current_queens (List[int]): Current board state
-            
-        Returns:
-            dict: Progress information
-            
-        Information includes:
-        - Number of queens placed
-        - Number of safe moves remaining
-        - Whether solution is still possible
-        - Completion percentage
-        """
+        # get current game progress information
         placed_queens = sum(1 for pos in current_queens if pos != -1)
         safe_moves = self.get_safe_moves(current_queens)
         
-        # Check if current state can lead to a solution
+        # check if solution is still possible
         can_solve = len(safe_moves) > 0 or placed_queens == 8
         if placed_queens < 8 and len(safe_moves) == 0:
             can_solve = False
@@ -261,7 +173,7 @@ class EightQueensValidator:
         return progress
     
     def _get_game_status(self, placed: int, safe_moves: List, can_solve: bool) -> str:
-        """Get human-readable game status."""
+        # get game status string
         if placed == 8:
             return 'completed'
         elif not can_solve:
@@ -274,15 +186,7 @@ class EightQueensValidator:
             return 'in_progress'
     
     def get_difficulty_rating(self, current_queens: List[int]) -> str:
-        """
-        Rate the difficulty of current position.
-        
-        Args:
-            current_queens (List[int]): Current board state
-            
-        Returns:
-            str: Difficulty rating ('easy', 'medium', 'hard', 'expert')
-        """
+        # rate difficulty of current position
         safe_moves = len(self.get_safe_moves(current_queens))
         placed = sum(1 for pos in current_queens if pos != -1)
         
@@ -299,26 +203,11 @@ class EightQueensValidator:
 
 
 class ConflictAnalyzer:
-    """
-    Analyzes conflicts and provides educational insights.
-    
-    This class helps users understand WHY certain moves are invalid
-    and provides educational value for learning the game.
-    """
+    # analyzes conflicts and provides feedback
     
     @staticmethod
     def analyze_position_conflicts(queens: List[int], row: int, col: int) -> dict:
-        """
-        Analyze why a specific position conflicts with existing queens.
-        
-        Args:
-            queens (List[int]): Current board state
-            row (int): Target row
-            col (int): Target column
-            
-        Returns:
-            dict: Detailed conflict analysis
-        """
+        # analyze why a position conflicts with existing queens
         conflicts = {
             'has_conflict': False,
             'conflict_types': [],
@@ -332,20 +221,20 @@ class ConflictAnalyzer:
             if existing_col == -1:
                 continue
             
-            # Column conflict
+            # column conflict
             if existing_col == col:
                 conflicts['has_conflict'] = True
                 conflicts['conflict_types'].append('column')
                 conflicts['conflicting_queens'].append((existing_row, existing_col))
                 conflicts['explanation'] = f'Queen at ({existing_row},{existing_col}) attacks same column'
             
-            # Diagonal conflict
+            # diagonal conflict
             elif abs(existing_row - row) == abs(existing_col - col):
                 conflicts['has_conflict'] = True
                 conflicts['conflict_types'].append('diagonal')
                 conflicts['conflicting_queens'].append((existing_row, existing_col))
                 
-                # Determine diagonal direction
+                # determine diagonal direction
                 if (existing_row - row) * (existing_col - col) > 0:
                     direction = 'main diagonal (\\'
                 else:
@@ -357,38 +246,27 @@ class ConflictAnalyzer:
     
     @staticmethod
     def get_attack_pattern(row: int, col: int, board_size: int = 8) -> Set[Tuple[int, int]]:
-        """
-        Get all squares attacked by a queen at given position.
-        
-        Args:
-            row (int): Queen row position
-            col (int): Queen column position
-            board_size (int): Size of the board (default 8)
-            
-        Returns:
-            Set[Tuple[int, int]]: Set of attacked square coordinates
-        """
+        # get all squares attacked by queen at given position
         attacked = set()
         
         for i in range(board_size):
-            # Row attacks
+            # row and column attacks
             attacked.add((row, i))
-            # Column attacks
             attacked.add((i, col))
             
-            # Main diagonal attacks (top-left to bottom-right)
+            # main diagonal attacks
             main_diag_row = row + (i - col)
             main_diag_col = i
             if 0 <= main_diag_row < board_size:
                 attacked.add((main_diag_row, main_diag_col))
             
-            # Anti-diagonal attacks (top-right to bottom-left)
+            # anti-diagonal attacks
             anti_diag_row = row - (i - col)
             anti_diag_col = i
             if 0 <= anti_diag_row < board_size:
                 attacked.add((anti_diag_row, anti_diag_col))
         
-        # Remove the queen's own position
+        # remove queen's own position
         attacked.discard((row, col))
         
         return attacked

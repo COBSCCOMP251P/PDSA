@@ -1,11 +1,3 @@
-"""
-Database models and data classes for Eight Queens Game
-Provides Pydantic models for type safety and validation
-
-Author: PDSA Course Project
-Date: November 24, 2025
-"""
-
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime

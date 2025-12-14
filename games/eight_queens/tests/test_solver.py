@@ -1,11 +1,3 @@
-"""
-Unit tests for the Eight Queens solver algorithm.
-
-These tests verify the correctness of the backtracking solver,
-validation utilities, and core game logic. Perfect for demonstrating
-algorithm correctness in university assignments.
-"""
-
 import pytest
 import sys
 from pathlib import Path

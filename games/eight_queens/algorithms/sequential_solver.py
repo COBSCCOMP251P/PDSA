@@ -1,33 +1,31 @@
+# Eight Queens Solver - Sequential Algorithm
+# Uses backtracking to find all 92 solutions
+
 class EightQueensSolver:
-    """
-    Solves 8 Queens using backtracking.
-    queens[row] = column tells us where each queen is placed.
-    Example: queens[0] = 3 means queen in row 0 is at column 3.
-    """
     
     def __init__(self):
-        """Set up empty board."""
+        # initialize board size and arrays
         self.board_size = 8
-        self.queens = [-1] * self.board_size  # -1 means no queen in that row
+        self.queens = [-1] * self.board_size
         self.solutions = []
-        self.solving_steps = []  # for showing how algorithm works
+        self.solving_steps = []
     
     def solve_all(self):
-        """Find all 92 solutions. Returns list of all valid queen placements."""
+        # find all 92 solutions
         self.solutions = []
         self.queens = [-1] * self.board_size
         self._backtrack_all_solutions(0)
         return self.solutions
     
     def solve_first(self):
-        """Find just the first solution (faster). Good for hints or quick checks."""
+        # find only the first solution
         self.queens = [-1] * self.board_size
         if self._backtrack_first_solution(0):
             return self.queens[:]
         return None
     
     def solve_step_by_step(self):
-        """Solve and record each step for visualization."""
+        # solve and record each step for visualization
         self.solving_steps = []
         self.queens = [-1] * self.board_size
         
@@ -36,44 +34,37 @@ class EightQueensSolver:
         return None, self.solving_steps
     
     def _backtrack_all_solutions(self, row):
-        """
-        Main backtracking logic to find ALL solutions.
+        # backtracking to find all solutions
         
-        How it works:
-        1. If we placed queens in all 8 rows -> save solution
-        2. Try each column in current row
-        3. If safe, place queen and go to next row
-        4. After trying, remove queen (backtrack) and try next column
-        """
-        # Base case: all 8 queens placed successfully
+        # if all 8 queens placed, save solution
         if row == self.board_size:
             self.solutions.append(self.queens[:])
             return
         
-        # Try each column in this row
+        # try each column in current row
         for col in range(self.board_size):
             if self._is_safe_placement(row, col):
-                self.queens[row] = col  # place queen
-                self._backtrack_all_solutions(row + 1)  # try next row
-                self.queens[row] = -1  # remove queen (backtrack)
+                self.queens[row] = col
+                self._backtrack_all_solutions(row + 1)
+                self.queens[row] = -1
     
     def _backtrack_first_solution(self, row):
-        """Find first solution only - stops when found."""
+        # find first solution and stop
         if row == self.board_size:
-            return True  # found a solution!
+            return True
         
         for col in range(self.board_size):
             if self._is_safe_placement(row, col):
                 self.queens[row] = col
                 if self._backtrack_first_solution(row + 1):
-                    return True  # solution found, stop searching
-                self.queens[row] = -1  # backtrack
+                    return True
+                self.queens[row] = -1
         
-        return False  # no solution in this path
+        return False
     
     def _backtrack_with_steps(self, row):
-        """Same as backtracking but records each step for visualization."""
-        # Record: starting to work on this row
+        # backtracking with step recording for visualization
+        
         self.solving_steps.append({
             'row': row,
             'queens': self.queens[:],
@@ -91,7 +82,7 @@ class EightQueensSolver:
             return True
         
         for col in range(self.board_size):
-            # Record: trying this position
+            # record trying this position
             self.solving_steps.append({
                 'row': row,
                 'col': col,
@@ -102,7 +93,7 @@ class EightQueensSolver:
             
             if self._is_safe_placement(row, col):
                 self.queens[row] = col
-                # Record: placed queen here
+                # record queen placed
                 self.solving_steps.append({
                     'row': row,
                     'col': col,
@@ -114,7 +105,7 @@ class EightQueensSolver:
                 if self._backtrack_with_steps(row + 1):
                     return True
                 
-                # Backtrack
+                # backtrack
                 self.queens[row] = -1
                 self.solving_steps.append({
                     'row': row,
@@ -124,7 +115,7 @@ class EightQueensSolver:
                     'message': f'Backtracking from ({row}, {col}) - no solution in this path'
                 })
             else:
-                # Record: conflict found
+                # record conflict
                 self.solving_steps.append({
                     'row': row,
                     'col': col,
@@ -136,31 +127,26 @@ class EightQueensSolver:
         return False
     
     def _is_safe_placement(self, row, col):
-        """
-        Check if we can place queen at (row, col) safely.
+        # check if queen can be placed safely at this position
         
-        We check against all queens in previous rows:
-        - Same column? -> conflict
-        - Same diagonal? -> conflict (when row diff == col diff)
-        """
         for prev_row in range(row):
             prev_col = self.queens[prev_row]
             
             if prev_col == -1:
-                continue  # no queen in this row yet
+                continue
             
-            # Same column = conflict
+            # check same column
             if prev_col == col:
                 return False
             
-            # Same diagonal = conflict
+            # check diagonal
             if abs(prev_row - row) == abs(prev_col - col):
                 return False
         
-        return True  # no conflicts found
+        return True
     
     def get_board_display(self, solution=None):
-        """Convert queens array to 8x8 board. Returns grid with 'Q' for queens, '.' for empty."""
+        # convert queens array to 8x8 board display
         queens_to_use = solution if solution else self.queens
         board = [['.' for _ in range(self.board_size)] for _ in range(self.board_size)]
         
@@ -172,7 +158,7 @@ class EightQueensSolver:
         return board
     
     def get_attacked_squares(self, solution=None):
-        """Get all squares that current queens can attack."""
+        # get all squares attacked by current queens
         queens_to_use = solution if solution else self.queens
         attacked = set()
         
@@ -181,12 +167,12 @@ class EightQueensSolver:
             if col == -1:
                 continue
             
-            # Mark all squares this queen attacks
+            # mark all attacked squares
             for i in range(self.board_size):
-                attacked.add((row, i))  # row attacks
-                attacked.add((i, col))  # column attacks
+                attacked.add((row, i))
+                attacked.add((i, col))
                 
-                # diagonal attacks (both directions)
+                # diagonal attacks
                 diag_row, diag_col = row + (i - row), col + (i - row)
                 if 0 <= diag_row < self.board_size and 0 <= diag_col < self.board_size:
                     attacked.add((diag_row, diag_col))
@@ -198,32 +184,32 @@ class EightQueensSolver:
         return attacked
     
     def is_complete_solution(self, solution=None):
-        """Check if board has valid complete solution. All 8 queens placed with no conflicts = True."""
+        # check if solution is valid and complete
         queens_to_use = solution if solution else self.queens
         
-        # Check all queens are placed
+        # check all queens placed
         if any(pos == -1 for pos in queens_to_use):
             return False
         
-        # Check no conflicts between any two queens
+        # check no conflicts
         for row in range(self.board_size):
             for other_row in range(row + 1, self.board_size):
                 col = queens_to_use[row]
                 other_col = queens_to_use[other_row]
                 
-                if col == other_col:  # same column
+                if col == other_col:
                     return False
-                if abs(row - other_row) == abs(col - other_col):  # same diagonal
+                if abs(row - other_row) == abs(col - other_col):
                     return False
         
         return True
     
     def get_solution_count(self):
-        """Return how many solutions we found (should be 92)."""
+        # return number of solutions found
         return len(self.solutions)
     
     def get_solution(self, index):
-        """Get solution by index (0-91)."""
+        # get solution by index
         if 0 <= index < len(self.solutions):
             return self.solutions[index]
         return None

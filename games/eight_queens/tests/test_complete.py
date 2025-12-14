@@ -1,11 +1,3 @@
-"""
-Complete Unit Tests for Eight Queens Game
-Covers all pdsa.md requirements for Section 5
-
-Run with: python games/eight_queens/tests/test_complete.py
-Or with pytest: python -m pytest games/eight_queens/tests/test_complete.py -v
-"""
-
 try:
     import pytest
 except ImportError:

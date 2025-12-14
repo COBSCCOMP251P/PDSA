@@ -1,11 +1,3 @@
-"""
-Database connection and configuration for Eight Queens Game
-Handles MySQL connectivity, connection pooling, and database operations
-
-Author: PDSA Course Project
-Date: November 24, 2025
-"""
-
 import mysql.connector
 from mysql.connector import pooling, Error
 import json

@@ -1,8 +1,3 @@
-"""
-Simple Test for Solution Reset System
-Assumes server is already running on port 8000
-"""
-
 import requests
 import json
 
