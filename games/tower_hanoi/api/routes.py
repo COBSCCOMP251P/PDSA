@@ -148,6 +148,26 @@ async def create_round(request: CreateRoundRequest):
         # Simplified calculation
         optimal_moves = 2 * n_disks - 1  # Approximation
     
+    # Run algorithms and save results
+    if ALGORITHMS_AVAILABLE:
+        try:
+            results = solve_tower_of_hanoi(n_disks, peg_count)
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            for result in results:
+                cursor.execute(
+                    """INSERT INTO algorithm_runs 
+                    (round_id, algorithm_name, peg_count, computed_moves, runtime_ms) 
+                    VALUES (%s, %s, %s, %s, %s)""",
+                    (round_id, result.algorithm_name, peg_count, result.moves, result.runtime_ms)
+                )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            print(f"✅ Algorithm runs saved for round {round_id}")
+        except Exception as e:
+            print(f"⚠️ Failed to save algorithm runs: {e}")
+    
     return {
         "id": round_id,
         "n_disks": n_disks,
@@ -324,6 +344,26 @@ async def save_game_result(game_result: GameResult):
         
         cursor.close()
         conn.close()
+        
+        # Run algorithms and save results for this round
+        if ALGORITHMS_AVAILABLE:
+            try:
+                results = solve_tower_of_hanoi(game_result.disk_count, 3)
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                for result in results:
+                    cursor.execute(
+                        """INSERT INTO algorithm_runs 
+                        (round_id, algorithm_name, peg_count, computed_moves, runtime_ms) 
+                        VALUES (%s, %s, %s, %s, %s)""",
+                        (round_id, result.algorithm_name, 3, result.moves, result.runtime_ms)
+                    )
+                conn.commit()
+                cursor.close()
+                conn.close()
+                print(f"✅ Algorithm runs saved for interactive game round {round_id}")
+            except Exception as algo_error:
+                print(f"⚠️ Failed to save algorithm runs: {algo_error}")
         
         return {
             "status": "success",
