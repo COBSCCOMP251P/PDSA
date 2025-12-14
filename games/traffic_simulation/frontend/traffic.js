@@ -25,24 +25,33 @@ async function initGraph() {
     const playerName = document.getElementById('player-name').value;
     const maxFlowGuess = document.getElementById('max-flow-guess').value;
     const parsedMaxFlow = parseInt(maxFlowGuess);
+    const gameStatusInput = document.getElementById('game-status-input'); // Get the dedicated status span
+
     // 2. Client-Side Validation
     if (!playerName || !maxFlowGuess) {
         // Check for empty string
         detailedResultsDiv.innerHTML = '<p style="color: red;">ERROR: Please enter PILOT NAME and MAX FLOW GUESS.</p>';
         return;
+    } else if (playerName.length > 50) { 
+        detailedResultsDiv.innerHTML = '<p style="color: red;">ERROR: PILOT NAME must be 50 characters or less.</p>';
+        return;
     } else if (isNaN(parsedMaxFlow)) {
         // Check for non-numeric input
         detailedResultsDiv.innerHTML = '<p style="color: red;">ERROR: MAX FLOW GUESS must be a valid number.</p>';
         return;
-    } else if (parsedMaxFlow < 1) {
-        // Check for lower boundary
-        detailedResultsDiv.innerHTML = '<p style="color: red;">ERROR: MAX FLOW GUESS must be at least 1.</p>';
+    } else if (parsedMaxFlow < 5) { 
+        detailedResultsDiv.innerHTML = '<p style="color: red;">ERROR: MAX FLOW GUESS must be at least 5.</p>';
         return;
     } else if (parsedMaxFlow > 50) {
         // Check for upper boundary
         detailedResultsDiv.innerHTML = '<p style="color: red;">ERROR: MAX FLOW GUESS exceeds the maximum limit of 50.</p>';
         return;
     }
+
+    // Indicate that simulation is running
+    detailedResultsDiv.innerHTML = '<p style="color: #ff9900;">STATUS: RUNNING SIMULATION... AWAITING BACKEND RESPONSE.</p>';
+    gameStatusInput.textContent = 'RUNNING...'; // <--- ADDED: Update the static input display
+    gameStatusInput.style.color = '#ff9900';
 
     // Indicate that simulation is running
     detailedResultsDiv.innerHTML = '<p style="color: #ff9900;">STATUS: RUNNING SIMULATION... AWAITING BACKEND RESPONSE.</p>';
@@ -67,6 +76,10 @@ async function initGraph() {
         const simulationData = await response.json(); 
         const sSideNodes = simulationData.sSideNodes || []; 
         const winStatus = simulationData.winStatus;
+        // ... (before step 4)
+        if (simulationData.maxFlowEK !== simulationData.maxFlowDinic) {
+            detailedResultsDiv.innerHTML += '<p style="color: orange; font-weight: bold;">WARNING: Algorithm inconsistency detected (EK != Dinic). Backend used the faster result.</p>';
+        }
     
         // 4. Display the results and win/loss status
         let statusColor = (winStatus === 'Win') ? '#00ff00' : (winStatus === 'Draw') ? '#ff9900' : '#ff0000';
@@ -77,6 +90,10 @@ async function initGraph() {
             <p>Game Status: <strong style="color: ${statusColor};">${winStatus}</strong>!</p>
             <p class="hint">CRITICAL FAILURE: MIN-CUT is **${simulationData.maxFlowEK}**.</p>
         `;
+
+        // Post-run status update:
+        gameStatusInput.textContent = winStatus.toUpperCase(); // <--- ADDED: Final status update
+        gameStatusInput.style.color = statusColor; // <--- ADDED: Color-code final status
         
         // 5. Initialize Cytoscape.js visualization
         var cy = cytoscape({
@@ -160,13 +177,13 @@ async function fetchAndDisplayLeaderboard() {
     // Set a loading state
     listElement.innerHTML = '<li>Loading rankings...</li>';
     
-    // Optional: Add a temporary class for visual feedback
+    //Add a temporary class for visual feedback
     panelTitle.textContent = 'GLOBAL PILOT RANKINGS // FETCHING DATA...';
 
     try {
         // 1. Fetch data from your FastAPI API endpoint (assuming /api/leaderboard)
         const response = await fetch('/api/traffic/leaderboard');
-        
+    
         if (!response.ok) {
             throw new Error(`Server Error (${response.status}) while fetching leaderboard.`);
         }
