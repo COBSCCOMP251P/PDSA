@@ -1,244 +1,81 @@
-# Eight Queens Game Module
+# Eight Queens Game
 
-**Developer:** [Your Name]  
-**Student ID:** [Your Student ID]  
-**Game:** Eight Queens Puzzle  
-**Assignment:** PDSA Interactive Algorithm Games
+## About
+This is my implementation of the Eight Queens puzzle for the PDSA coursework. The goal is to place 8 queens on a chessboard so that no two queens can attack each other.
 
-## 🎯 Problem Description
+## How It Works
+- Queens can attack in rows, columns, and diagonals
+- There are exactly 92 valid solutions
+- I used backtracking algorithm to find all solutions
 
-The Eight Queens puzzle is the problem of placing eight chess queens on an 8×8 chessboard so that no two queens threaten each other. This means no two queens can be in the same row, column, or diagonal.
+## Algorithms Used
 
-## 🧠 Algorithm Requirements
+### Sequential Solver
+- Uses backtracking to find all 92 solutions one by one
+- Tries each column in each row
+- If a position is safe, places queen and moves to next row
+- If stuck, backtracks and tries next column
 
-### 1. Sequential Algorithm
-- **Method**: Backtracking algorithm (single-threaded)
-- **Goal**: Find all 92 solutions to the Eight Queens problem
-- **Time Complexity**: O(N!)
-- **Space Complexity**: O(N)
+### Threaded Solver
+- Same backtracking logic but runs in parallel
+- Each thread starts with queen in different column (0-7)
+- Finds solutions faster by using multiple CPU cores
+- Results are combined at the end
 
-### 2. Threaded Algorithm  
-- **Method**: Multi-threaded backtracking
-- **Goal**: Find all 92 solutions using parallel processing
-- **Threads**: Configurable (default: 4 threads)
-- **Performance**: Compare with sequential approach
-
-## 📁 Module Structure
+## Files
 
 ```
 eight_queens/
-├── README.md                    # This file
 ├── algorithms/
-│   ├── __init__.py
-│   ├── sequential_solver.py     # Single-threaded backtracking
-│   ├── threaded_solver.py       # Multi-threaded backtracking
-│   └── performance_tracker.py   # Performance measurement
-├── frontend/
-│   ├── queens.html             # Game interface
-│   ├── queens.css              # Custom styles
-│   └── queens.js               # Frontend logic
+│   ├── sequential_solver.py   - single threaded solver
+│   ├── threaded_solver.py     - multi threaded solver
+│   └── validation.py          - validates queen positions
 ├── api/
-│   ├── __init__.py
-│   └── queens_routes.py        # FastAPI endpoints
-├── tests/
-│   ├── __init__.py
-│   ├── test_sequential.py      # Test sequential algorithm
-│   ├── test_threaded.py        # Test threaded algorithm
-│   └── test_performance.py     # Performance tests
-└── docs/
-    ├── algorithm_analysis.md   # Complexity analysis
-    ├── performance_report.md   # 15-round testing results
-    └── screenshots/           # UI screenshots
+│   └── routes.py              - API endpoints
+├── frontend/
+│   └── index.html             - game interface
+├── database/
+│   ├── schema.sql             - database tables
+│   ├── connection.py          - database connection
+│   └── models.py              - database operations
+└── tests/
+    └── test_solver.py         - unit tests
 ```
 
-## 🚀 Getting Started
+## How to Run
 
-### 1. Development Setup
-```bash
-# Navigate to your module
-cd games/eight_queens/
-
-# Install dependencies (if any additional needed)
-pip install -r ../../requirements.txt
-
-# Run algorithm test
-python algorithms/sequential_solver.py
+1. Start the server from project root:
+```
+python -m uvicorn shared.backend.main:app --reload
 ```
 
-### 2. Algorithm Implementation Checklist
+2. Open in browser:
+```
+http://127.0.0.1:8000/games/eight_queens/frontend/index.html
+```
 
-#### Sequential Solver (`algorithms/sequential_solver.py`)
-- [ ] Implement backtracking algorithm
-- [ ] Find all 92 solutions
-- [ ] Measure execution time
-- [ ] Validate solution correctness
-- [ ] Memory usage tracking
+## Database Tables
+- `players` - stores player information
+- `EightQueensSolutions` - all 92 solutions with MD5 hash
+- `game_sessions` - tracks each game played
+- `EightQueensResults` - player submissions
+- `algorithm_comparisons` - sequential vs threaded timing
 
-#### Threaded Solver (`algorithms/threaded_solver.py`)
-- [ ] Multi-threaded backtracking
-- [ ] Thread synchronization
-- [ ] Merge results from all threads
-- [ ] Performance comparison
-- [ ] Thread safety implementation
+## Features
+- Register new player or login existing
+- Three difficulty levels (Easy, Medium, Hard)
+- Click on board to place queens
+- Shows conflicts when queens attack each other
+- Validates solution against database
+- Records time taken for sequential and threaded algorithms
+- Tracks if solution was already found by another player
 
-#### Performance Tracker (`algorithms/performance_tracker.py`)
-- [ ] Time measurement utilities
-- [ ] Memory usage monitoring
-- [ ] 15-round testing automation
-- [ ] Performance report generation
-- [ ] Comparison charts
+## Algorithm Complexity
+- Time: O(N!) - tries all possible arrangements
+- Space: O(N) - stores queen positions array
 
-### 3. Frontend Development Checklist
-
-#### Game Interface (`frontend/queens.html`)
-- [ ] 8x8 chessboard visualization
-- [ ] Queen placement display
-- [ ] Solution browsing (1 of 92)
-- [ ] Algorithm selection (Sequential/Threaded)
-- [ ] Performance metrics display
-
-#### Styling (`frontend/queens.css`)
-- [ ] Chessboard styling
-- [ ] Queen icons/pieces
-- [ ] Responsive design
-- [ ] Animation effects
-- [ ] Tailwind CSS integration
-
-#### Frontend Logic (`frontend/queens.js`)
-- [ ] API communication
-- [ ] Chessboard interaction
-- [ ] Solution display management
-- [ ] Performance visualization
-- [ ] Input validation
-
-### 4. Backend API Checklist
-
-#### API Endpoints (`api/queens_routes.py`)
-- [ ] `POST /api/queens/solve` - Run algorithms
-- [ ] `GET /api/queens/solutions` - Get all solutions
-- [ ] `POST /api/queens/submit` - Save player results
-- [ ] `GET /api/queens/performance` - Get performance data
-- [ ] `POST /api/queens/validate` - Validate solution
-
-### 5. Testing Checklist
-
-#### Unit Tests
-- [ ] Test sequential algorithm correctness
-- [ ] Test threaded algorithm correctness
-- [ ] Test solution validation
-- [ ] Test performance measurement
-- [ ] Test API endpoints
-
-#### Performance Tests
-- [ ] 15-round execution testing
-- [ ] Memory usage validation
-- [ ] Thread safety verification
-- [ ] Algorithm comparison
-- [ ] Scalability testing
-
-## 📊 Expected Deliverables
-
-### Individual Report Requirements
-1. **Algorithm Logic Explanation**
-   - Backtracking algorithm walkthrough
-   - Multi-threading implementation details
-   - Solution validation approach
-
-2. **Complexity Analysis**
-   - Time complexity: O(N!) analysis
-   - Space complexity: O(N) analysis
-   - Performance comparison (Sequential vs Threaded)
-
-3. **Performance Testing**
-   - 15-round execution results
-   - Execution time charts
-   - Memory usage analysis
-   - Thread performance comparison
-
-4. **Database Integration**
-   - Player result storage
-   - Performance metrics tracking
-   - Duplicate solution handling
-   - Solution flag management
-
-### Code Quality Standards
-- [ ] Comprehensive docstrings
-- [ ] Type hints where applicable
-- [ ] Error handling and validation
-- [ ] Logging for debugging
-- [ ] Clean, readable code structure
-
-## 🎮 Game Features
-
-### Core Functionality
-1. **Solution Finding**: Discover all 92 valid queen placements
-2. **Algorithm Comparison**: Sequential vs Multi-threaded performance
-3. **Interactive Display**: Visual chessboard with solution browsing
-4. **Player Tracking**: Save player names and correct answers
-5. **Duplicate Detection**: Track and prevent duplicate submissions
-
-### Advanced Features
-1. **Performance Analytics**: Real-time execution time display
-2. **Solution Validation**: Verify player-submitted solutions
-3. **Leaderboard**: Track fastest solution times
-4. **Animation**: Smooth queen placement animations
-5. **Responsive Design**: Works on desktop and mobile
-
-## 📈 Performance Goals
-
-### Target Metrics
-- **Sequential Algorithm**: < 2 seconds execution time
-- **Threaded Algorithm**: < 1 second execution time (with 4 threads)
-- **Memory Usage**: < 50 MB peak usage
-- **Solution Accuracy**: 100% (all 92 solutions found)
-- **UI Response**: < 100ms interaction response
-
-### Testing Protocol
-1. Run each algorithm 15 times
-2. Record execution times
-3. Monitor memory usage
-4. Verify solution correctness
-5. Generate performance charts
-
-## 🐛 Development Notes
-
-### Common Challenges
-1. **Thread Synchronization**: Ensure thread-safe solution collection
-2. **Performance Optimization**: Balance thread count vs overhead
-3. **Solution Validation**: Verify no two queens attack each other
-4. **UI Responsiveness**: Handle large solution sets efficiently
-5. **Memory Management**: Optimize for minimal memory usage
-
-### Tips for Success
-1. Start with sequential algorithm first
-2. Test thoroughly before adding threading
-3. Use proper debugging tools
-4. Document your algorithm logic clearly
-5. Test edge cases and error conditions
-
-## 📝 VIVA Preparation
-
-### Be Ready to Explain
-1. **Backtracking Algorithm**: How it works step-by-step
-2. **Thread Implementation**: How you parallelized the solution
-3. **Performance Results**: Your 15-round testing data
-4. **Code Structure**: Walk through your implementation
-5. **Problem Challenges**: Issues faced and solutions
-
-### Demo Script
-1. Show algorithm running: `python algorithms/sequential_solver.py`
-2. Open game interface: `frontend/queens.html`
-3. Demonstrate API calls: Show network tab
-4. Explain code logic: Walk through key functions
-5. Present performance data: Show charts and analysis
-
----
-
-**Ready to implement? Start with the sequential algorithm and work your way up to the full game implementation!** 🚀
-
-**Next Steps:**
-1. Implement `algorithms/sequential_solver.py`
-2. Create basic `frontend/queens.html` 
-3. Set up `api/queens_routes.py`
-4. Write unit tests
-5. Add threading and performance tracking
+## Testing
+Run tests from project root:
+```
+python -m pytest games/eight_queens/tests/
+```
