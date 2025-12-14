@@ -26,6 +26,9 @@ ALL_NODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'T']
 SOURCE = 'A'
 SINK = 'T'
 
+
+NODE_LABELS = ALL_NODES 
+NUM_NODES = len(ALL_NODES)
 #--------------------------------------------------------------------------------------#
 # Section 03 - Graph Generation Function 
 #--------------------------------------------------------------------------------------#
@@ -262,7 +265,34 @@ def find_min_cut_nodes(residual_graph, source):
 
     # Returns the list of nodes that are reachable (S-set)
     return [node for node, status in reachable.items() if status]
+def convert_cytoscape_to_capacity_matrix(cytoscape_elements: list) -> dict:
+    """
+    Converts a list of Cytoscape JSON elements (nodes and edges) 
+    back into the adjacency dictionary graph representation.
+    """
+    # Initialize the graph with all nodes pointing to an empty dictionary
+    capacity_graph = {node: {} for node in NODE_LABELS}
 
+    # Populate Capacity Dictionary from Edges
+    for element in cytoscape_elements:
+        # We only care about edges here
+        if element.get('group') == 'edges':
+            data = element.get('data', {})
+            source_label = data.get('source')
+            target_label = data.get('target')
+            capacity = data.get('capacity')
+            
+            # Ensure all required data is present and source/target are valid nodes
+            if source_label in capacity_graph and target_label and capacity is not None:
+                try:
+                    capacity_value = int(capacity)
+                    # Add capacity to the dictionary graph
+                    capacity_graph[source_label][target_label] = capacity_value
+                except ValueError:
+                    # In a real application, you might log this error instead of printing
+                    pass
+
+    return capacity_graph
 
 #--------------------------------------------------------------------------------------#
 # Section 07 - Unit Tests 
