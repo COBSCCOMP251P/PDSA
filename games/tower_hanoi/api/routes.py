@@ -281,6 +281,62 @@ async def get_leaderboard():
         print(f"Leaderboard error: {e}")
         return []
 
+@router.post("/save-game")
+async def save_game_result(game_result: GameResult):
+    """Save interactive game result to database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get or create player
+        cursor.execute("SELECT id FROM players WHERE name = %s", (game_result.player_name,))
+        player = cursor.fetchone()
+        
+        if not player:
+            cursor.execute("INSERT INTO players (name) VALUES (%s)", (game_result.player_name,))
+            conn.commit()
+            player_id = cursor.lastrowid
+        else:
+            player_id = player['id']
+        
+        # Create a round for this game
+        destination = 'C'  # 3 pegs game
+        cursor.execute(
+            "INSERT INTO rounds (n_disks, peg_count, source, destination) VALUES (%s, %s, %s, %s)",
+            (game_result.disk_count, 3, 'A', destination)
+        )
+        conn.commit()
+        round_id = cursor.lastrowid
+        
+        # Generate move sequence placeholder (interactive game doesn't track individual moves)
+        move_sequence = f"Interactive game - {game_result.moves} moves in {game_result.time_taken}s"
+        
+        # Save as submission
+        is_correct = True  # Game only calls this when won
+        cursor.execute(
+            """INSERT INTO submissions 
+            (round_id, player_id, declared_moves, move_sequence, is_correct, validation_error) 
+            VALUES (%s, %s, %s, %s, %s, %s)""",
+            (round_id, player_id, game_result.moves, move_sequence, is_correct, None)
+        )
+        conn.commit()
+        submission_id = cursor.lastrowid
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": "Game result saved!",
+            "submission_id": submission_id,
+            "player_id": player_id,
+            "round_id": round_id,
+            "is_optimal": game_result.is_optimal
+        }
+    except Exception as e:
+        print(f"Save game error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save game: {str(e)}")
+
 @router.post("/validate")
 async def validate_move(data: dict):
     """Validate a single move without submitting"""

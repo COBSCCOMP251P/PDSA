@@ -1270,7 +1270,7 @@ class InteractiveTowerGame {
 
             console.log('Saving game result:', gameData);
 
-            const response = await fetch('http://localhost:8002/api/leaderboard', {
+            const response = await fetch('/api/hanoi/save-game', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
