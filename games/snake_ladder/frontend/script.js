@@ -3,6 +3,8 @@
  * Handles game interactions, API calls, and UI updates
  */
 
+console.log('=== Script.js loaded ===', new Date().toISOString());
+
 // Configuration
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -10,6 +12,16 @@ const API_BASE_URL = 'http://localhost:8000/api';
 let currentSession = null;
 let currentBoardConfig = null;
 let currentPlayerName = null;
+let currentGameResult = null; // Store result for visualization
+
+// Debug: Log when variables change
+window.debugGameState = function() {
+    console.log('Current Game State:');
+    console.log('- currentSession:', currentSession);
+    console.log('- currentBoardConfig:', currentBoardConfig);
+    console.log('- currentPlayerName:', currentPlayerName);
+    console.log('- currentGameResult:', currentGameResult);
+};
 
 // DOM Elements
 const sections = {
@@ -18,7 +30,8 @@ const sections = {
     game: document.getElementById('gameSection'),
     result: document.getElementById('resultSection'),
     leaderboard: document.getElementById('leaderboardSection'),
-    error: document.getElementById('errorSection')
+    error: document.getElementById('errorSection'),
+    pathVisualization: document.getElementById('pathVisualizationSection')
 };
 
 const forms = {
@@ -46,6 +59,14 @@ function initializeEventListeners() {
     document.getElementById('viewLeaderboardBtn')?.addEventListener('click', showLeaderboard);
     document.getElementById('backToGameBtn')?.addEventListener('click', resetGame);
     document.getElementById('retryBtn')?.addEventListener('click', resetGame);
+    
+    // Path visualization buttons
+    document.getElementById('showBFSVisualizationBtn')?.addEventListener('click', () => showPathVisualization('bfs'));
+    document.getElementById('showDFSVisualizationBtn')?.addEventListener('click', () => showPathVisualization('dfs'));
+    document.getElementById('startAnimationBtn')?.addEventListener('click', startPathAnimation);
+    document.getElementById('pauseAnimationBtn')?.addEventListener('click', pausePathAnimation);
+    document.getElementById('resetAnimationBtn')?.addEventListener('click', resetPathAnimation);
+    document.getElementById('closePathBtn')?.addEventListener('click', closePathVisualization);
 }
 
 /**
@@ -96,6 +117,8 @@ async function handleSetupSubmit(e) {
         
         currentSession = data.session_id;
         currentBoardConfig = data.board_config;
+        
+        console.log('Game initialized - stored boardConfig:', currentBoardConfig);
         
         // Display game board
         displayGameBoard(data.board_config, data.answer_choices);
@@ -250,9 +273,30 @@ async function handleAnswerSubmit(e) {
         
         const data = await response.json();
         
+        // Store result for visualization
+        currentGameResult = data;
+        
+        console.log('Answer submitted - stored gameResult:', currentGameResult);
+        console.log('BFS result:', currentGameResult.bfs_result);
+        console.log('BFS path:', currentGameResult.bfs_result?.path);
+        
         // Display result
         displayResult(data);
         showSection('result');
+        
+        // Attach visualization button listeners after DOM update
+        setTimeout(() => {
+            const bfsBtn = document.getElementById('showBFSVisualizationBtn');
+            const dfsBtn = document.getElementById('showDFSVisualizationBtn');
+            if (bfsBtn) {
+                bfsBtn.onclick = () => showPathVisualization('bfs');
+                console.log('Attaching click listener to BFS visualization button');
+            }
+            if (dfsBtn) {
+                dfsBtn.onclick = () => showPathVisualization('dfs');
+                console.log('Attaching click listener to DFS visualization button');
+            }
+        }, 100);
         
     } catch (error) {
         console.error('Submit error:', error);
@@ -298,26 +342,45 @@ function displayResult(data) {
         </div>
     `;
     
-    // Algorithm comparison
+    // Algorithm comparison - show both algorithms separately
     const algorithmDetails = document.getElementById('algorithmDetails');
+    const bfsFaster = data.bfs_result.execution_time_ms < data.dfs_result.execution_time_ms;
     algorithmDetails.innerHTML = `
-        <div class="detail-row">
-            <span class="detail-label">BFS Algorithm:</span>
-            <span class="detail-value">
-                ${data.bfs_result.min_moves} moves in ${data.bfs_result.execution_time_ms.toFixed(3)} ms
-            </span>
+        <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+            <h4 style="color: #1976d2; margin-bottom: 10px;">🔵 BFS (Breadth-First Search)</h4>
+            <div class="detail-row">
+                <span class="detail-label">Minimum Moves:</span>
+                <span class="detail-value">${data.bfs_result.min_moves} throws</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Execution Time:</span>
+                <span class="detail-value">${data.bfs_result.execution_time_ms.toFixed(3)} ms ${bfsFaster ? '⚡ (Faster)' : ''}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Path Length:</span>
+                <span class="detail-value">${data.bfs_result.path?.length || 0} positions</span>
+            </div>
         </div>
-        <div class="detail-row">
-            <span class="detail-label">DFS Algorithm:</span>
-            <span class="detail-value">
-                ${data.dfs_result.min_moves} moves in ${data.dfs_result.execution_time_ms.toFixed(3)} ms
-            </span>
+        <div style="padding: 15px; background: #fce4ec; border-radius: 8px;">
+            <h4 style="color: #c2185b; margin-bottom: 10px;">🔴 DFS (Depth-First Search)</h4>
+            <div class="detail-row">
+                <span class="detail-label">Minimum Moves:</span>
+                <span class="detail-value">${data.dfs_result.min_moves} throws</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Execution Time:</span>
+                <span class="detail-value">${data.dfs_result.execution_time_ms.toFixed(3)} ms ${!bfsFaster ? '⚡ (Faster)' : ''}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Path Length:</span>
+                <span class="detail-value">${data.dfs_result.path?.length || 0} positions</span>
+            </div>
         </div>
-        <div class="detail-row">
-            <span class="detail-label">Speed Comparison:</span>
+        <div class="detail-row" style="margin-top: 15px; font-weight: bold;">
+            <span class="detail-label">Winner:</span>
             <span class="detail-value">
-                ${data.bfs_result.execution_time_ms < data.dfs_result.execution_time_ms ? 
-                    'BFS was faster' : 'DFS was faster'}
+                ${bfsFaster ? '🔵 BFS was faster' : '🔴 DFS was faster'} 
+                (by ${Math.abs(data.bfs_result.execution_time_ms - data.dfs_result.execution_time_ms).toFixed(3)} ms)
             </span>
         </div>
     `;
@@ -423,6 +486,9 @@ function displayLeaderboard(leaderboard) {
 function resetGame() {
     currentSession = null;
     currentBoardConfig = null;
+    currentGameResult = null;
+    
+    console.log('Game reset - all data cleared');
     
     // Reset forms
     forms.setup.reset();
@@ -452,6 +518,353 @@ function showError(message) {
     const errorMessage = document.getElementById('errorMessage');
     errorMessage.textContent = message;
     showSection('error');
+}
+
+// ==================== PATH VISUALIZATION ====================
+
+let animationState = {
+    path: [],
+    currentStep: 0,
+    isPlaying: false,
+    isPaused: false,
+    intervalId: null,
+    boardConfig: null,
+    algorithm: 'bfs' // Track which algorithm is being visualized
+};
+
+
+
+/**
+ * Show path visualization section
+ * @param {string} algorithmType - 'bfs' or 'dfs'
+ */
+function showPathVisualization(algorithmType = 'bfs') {
+    console.log(`=== showPathVisualization called for ${algorithmType.toUpperCase()} ===`);
+    console.log('currentBoardConfig:', currentBoardConfig);
+    console.log('currentGameResult:', currentGameResult);
+    
+    // Check if we have game result with path data
+    if (!currentBoardConfig) {
+        alert('Board config missing! Please start a new game first.');
+        console.error('currentBoardConfig is null or undefined');
+        return;
+    }
+    
+    if (!currentGameResult) {
+        alert('Game result missing! Please submit your answer first.');
+        console.error('currentGameResult is null or undefined');
+        return;
+    }
+    
+    const algorithmResult = algorithmType === 'bfs' ? currentGameResult.bfs_result : currentGameResult.dfs_result;
+    
+    if (!algorithmResult) {
+        alert(`${algorithmType.toUpperCase()} result missing in game result!`);
+        console.error(`currentGameResult.${algorithmType}_result is null or undefined`);
+        return;
+    }
+    
+    const pathSection = document.getElementById('pathVisualizationSection');
+    const animatedBoardContainer = document.getElementById('animatedBoardContainer');
+    const visualizationTitle = document.getElementById('visualizationTitle');
+    
+    if (!pathSection) {
+        alert('Path visualization section not found!');
+        return;
+    }
+    
+    // Update title based on algorithm
+    const algorithmName = algorithmType === 'bfs' ? 'BFS (Breadth-First Search)' : 'DFS (Depth-First Search)';
+    const algorithmEmoji = algorithmType === 'bfs' ? '🔵' : '🔴';
+    visualizationTitle.textContent = `${algorithmEmoji} ${algorithmName} Path Visualization`;
+    
+    // Update info to show algorithm-specific details
+    document.getElementById('pathInfo').innerHTML = `
+        <p><strong>🎯 Visualizing ${algorithmType.toUpperCase()} Algorithm Solution</strong></p>
+        <p><strong>Algorithm:</strong> ${algorithmName}</p>
+        <p><strong>Minimum Moves:</strong> ${algorithmResult.min_moves} throws | 
+        <strong>Execution Time:</strong> ${algorithmResult.execution_time_ms.toFixed(3)}ms</p>
+        <p><strong>Path Length:</strong> ${algorithmResult.path?.length || 0} positions visited</p>
+    `;
+
+    // Sync dice styling/label to the selected algorithm so the user can see which path is playing
+    const diceEl = document.getElementById('diceValue');
+    const diceLabel = document.getElementById('diceLabel');
+    diceEl.classList.remove('dice-bfs', 'dice-dfs');
+    diceLabel.classList.remove('dice-label-bfs', 'dice-label-dfs');
+    const isDFS = algorithmType === 'dfs';
+    diceEl.classList.add(isDFS ? 'dice-dfs' : 'dice-bfs');
+    diceLabel.classList.add(isDFS ? 'dice-label-dfs' : 'dice-label-bfs');
+    diceLabel.textContent = isDFS ? 'Dice Roll — DFS' : 'Dice Roll — BFS';
+    
+    // Render board for animation (same as displayGameBoard)
+    animatedBoardContainer.innerHTML = '';
+    animatedBoardContainer.style.gridTemplateColumns = `repeat(${currentBoardConfig.board_size}, 1fr)`;
+    
+    const totalCells = currentBoardConfig.total_cells;
+    const n = currentBoardConfig.board_size;
+    
+    // Create cells in snake pattern (zigzag)
+    for (let row = n - 1; row >= 0; row--) {
+        for (let col = 0; col < n; col++) {
+            let cellNum;
+            if ((n - 1 - row) % 2 === 0) {
+                cellNum = row * n + col + 1;
+            } else {
+                cellNum = row * n + (n - 1 - col) + 1;
+            }
+            
+            const cell = createBoardCell(cellNum, currentBoardConfig, totalCells);
+            animatedBoardContainer.appendChild(cell);
+        }
+    }
+    
+    // Show the section
+    pathSection.classList.remove('hidden');
+    pathSection.scrollIntoView({ behavior: 'smooth' });
+    
+    // Reset animation state and store the selected algorithm's path
+    animationState.path = algorithmResult.path || [];
+    animationState.algorithm = algorithmType;
+    resetPathAnimation();
+}
+
+/**
+ * Start path animation
+ */
+function startPathAnimation() {
+    if (!currentBoardConfig) {
+        alert('No game data available');
+        return;
+    }
+    
+    animationState.isPlaying = true;
+    animationState.isPaused = false;
+    
+    document.getElementById('startAnimationBtn').disabled = true;
+    document.getElementById('pauseAnimationBtn').disabled = false;
+    
+    // Simulate BFS path (1 to target with random dice rolls)
+    animatePath();
+}
+
+/**
+ * Pause animation
+ */
+function pausePathAnimation() {
+    animationState.isPaused = true;
+    animationState.isPlaying = false;
+    
+    if (animationState.intervalId) {
+        clearTimeout(animationState.intervalId);
+    }
+    
+    document.getElementById('startAnimationBtn').disabled = false;
+    document.getElementById('pauseAnimationBtn').disabled = true;
+    
+    document.getElementById('moveStatus').textContent = 'Paused';
+}
+
+/**
+ * Reset animation
+ */
+function resetPathAnimation() {
+    animationState.currentStep = 0;
+    animationState.isPlaying = false;
+    animationState.isPaused = false;
+    
+    if (animationState.intervalId) {
+        clearTimeout(animationState.intervalId);
+    }
+    
+    document.getElementById('startAnimationBtn').disabled = false;
+    document.getElementById('pauseAnimationBtn').disabled = true;
+    
+    document.getElementById('diceValue').textContent = '?';
+    const diceLabel = document.getElementById('diceLabel');
+    const diceValue = document.getElementById('diceValue');
+    diceValue.classList.remove('dice-bfs', 'dice-dfs');
+    diceLabel.classList.remove('dice-label-bfs', 'dice-label-dfs');
+    const isDFS = animationState.algorithm === 'dfs';
+    diceValue.classList.add(isDFS ? 'dice-dfs' : 'dice-bfs');
+    diceLabel.classList.add(isDFS ? 'dice-label-dfs' : 'dice-label-bfs');
+    diceLabel.textContent = isDFS ? 'Dice Roll — DFS' : 'Dice Roll — BFS';
+    document.getElementById('currentPos').textContent = '1';
+    document.getElementById('nextPos').textContent = '-';
+    document.getElementById('throwsCount').textContent = '0';
+    document.getElementById('moveStatus').textContent = 'Ready';
+    document.getElementById('moveStatus').className = 'info-value';
+    
+    // Clear all position highlights
+    const cells = document.querySelectorAll('#animatedBoardContainer .cell');
+    cells.forEach(cell => {
+        cell.classList.remove('player-position', 'visited', 'next-move');
+    });
+}
+
+/**
+ * Close path visualization
+ */
+function closePathVisualization() {
+    document.getElementById('pathVisualizationSection').classList.add('hidden');
+    resetPathAnimation();
+}
+
+/**
+ * Animate the path from start to end using BFS path
+ */
+function animatePath() {
+    const path = animationState.path;
+    
+    // If no path available, use simulation
+    if (!path || path.length === 0) {
+        animatePathSimulation();
+        return;
+    }
+    
+    let stepIndex = 0;
+    let throwCount = 0;
+    
+    // Highlight starting position
+    highlightCell(path[0], 'player-position');
+    document.getElementById('currentPos').textContent = path[0];
+    document.getElementById('moveStatus').textContent = 'Starting...';
+    
+    function makeMove() {
+        if (!animationState.isPlaying || stepIndex >= path.length - 1) {
+            if (stepIndex >= path.length - 1) {
+                document.getElementById('moveStatus').textContent = 'Completed! 🎉';
+                document.getElementById('moveStatus').className = 'info-value status-complete';
+                document.getElementById('startAnimationBtn').disabled = false;
+                document.getElementById('pauseAnimationBtn').disabled = true;
+            }
+            return;
+        }
+        
+        const currentPosition = path[stepIndex];
+        const nextPosition = path[stepIndex + 1];
+        
+        throwCount++;
+        document.getElementById('throwsCount').textContent = throwCount;
+        
+        // Calculate the actual dice roll by reverse-engineering from the path
+        // The next position might be result of: currentPos + dice, or a ladder/snake
+        let diceRoll = 1;
+        let landedPosition = currentPosition + 1;
+        
+        // Try to figure out what dice roll was used
+        // Check all possible dice rolls (1-6) and see which one leads to nextPosition
+        for (let roll = 1; roll <= 6; roll++) {
+            let testPosition = currentPosition + roll;
+            
+            // Check if this leads to a ladder
+            if (currentBoardConfig.ladders[testPosition]) {
+                if (currentBoardConfig.ladders[testPosition] === nextPosition) {
+                    diceRoll = roll;
+                    landedPosition = testPosition;
+                    break;
+                }
+            }
+            // Check if this leads to a snake
+            else if (currentBoardConfig.snakes[testPosition]) {
+                if (currentBoardConfig.snakes[testPosition] === nextPosition) {
+                    diceRoll = roll;
+                    landedPosition = testPosition;
+                    break;
+                }
+            }
+            // Check if it's a direct move
+            else if (testPosition === nextPosition) {
+                diceRoll = roll;
+                landedPosition = testPosition;
+                break;
+            }
+        }
+        
+        // Animate dice
+        const diceElement = document.getElementById('diceValue');
+        diceElement.classList.add('rolling');
+        diceElement.textContent = '🎲';
+        
+        setTimeout(() => {
+            diceElement.textContent = diceRoll;
+            diceElement.classList.remove('rolling');
+            
+            // Determine what happened in this move
+            // Check for ladder
+            if (currentBoardConfig.ladders[landedPosition]) {
+                const ladderEnd = currentBoardConfig.ladders[landedPosition];
+                document.getElementById('moveStatus').textContent = `Rolled ${diceRoll} → Ladder! ${landedPosition} → ${ladderEnd} 🪜`;
+                document.getElementById('moveStatus').className = 'info-value status-ladder';
+            }
+            // Check for snake
+            else if (currentBoardConfig.snakes[landedPosition]) {
+                const snakeEnd = currentBoardConfig.snakes[landedPosition];
+                document.getElementById('moveStatus').textContent = `Rolled ${diceRoll} → Snake! ${landedPosition} → ${snakeEnd} 🐍`;
+                document.getElementById('moveStatus').className = 'info-value status-snake';
+            } else {
+                document.getElementById('moveStatus').textContent = `Rolled ${diceRoll} → Moving to ${nextPosition}`;
+                document.getElementById('moveStatus').className = 'info-value status-moving';
+            }
+            
+            // Update UI
+            document.getElementById('nextPos').textContent = nextPosition;
+            
+            // Remove previous highlight
+            clearHighlight(currentPosition);
+            
+            // Mark as visited
+            if (currentPosition !== path[0]) {
+                highlightCell(currentPosition, 'visited');
+            }
+            
+            // Highlight next position
+            highlightCell(nextPosition, 'player-position');
+            document.getElementById('currentPos').textContent = nextPosition;
+            
+            // Move to next step
+            stepIndex++;
+            
+            // Continue animation
+            if (stepIndex < path.length - 1 && animationState.isPlaying) {
+                animationState.intervalId = setTimeout(makeMove, 1500);
+            } else if (stepIndex >= path.length - 1) {
+                document.getElementById('moveStatus').textContent = 'Completed! 🎉';
+                document.getElementById('moveStatus').className = 'info-value status-complete';
+                document.getElementById('startAnimationBtn').disabled = false;
+                document.getElementById('pauseAnimationBtn').disabled = true;
+            }
+        }, 600);
+    }
+    
+    // Start first move
+    animationState.intervalId = setTimeout(makeMove, 500);
+}
+
+/**
+ * Highlight a cell on the animated board
+ */
+function highlightCell(cellNum, className) {
+    const cells = document.querySelectorAll('#animatedBoardContainer .cell');
+    cells.forEach(cell => {
+        const cellNumber = parseInt(cell.querySelector('.cell-number')?.textContent);
+        if (cellNumber === cellNum) {
+            cell.classList.add(className);
+        }
+    });
+}
+
+/**
+ * Clear highlight from a cell
+ */
+function clearHighlight(cellNum) {
+    const cells = document.querySelectorAll('#animatedBoardContainer .cell');
+    cells.forEach(cell => {
+        const cellNumber = parseInt(cell.querySelector('.cell-number')?.textContent);
+        if (cellNumber === cellNum) {
+            cell.classList.remove('player-position', 'next-move');
+        }
+    });
 }
 
 /**

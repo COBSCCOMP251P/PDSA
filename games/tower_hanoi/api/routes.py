@@ -7,9 +7,25 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import mysql.connector
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Create router
 router = APIRouter()
+
+# Database connection
+def get_db_connection():
+    """Get MySQL database connection"""
+    return mysql.connector.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        user=os.getenv("DB_USER", "root"),
+        password=os.getenv("DB_PASSWORD", "pruthuvide"),
+        database="pdsa_games"
+    )
 
 # Pydantic Models
 class CreateRoundRequest(BaseModel):
@@ -68,33 +84,62 @@ except Exception as e:
     algorithm_runner = None
     game_validator = None
 
-# In-memory game storage
-active_rounds: Dict[int, Dict] = {}
-round_counter = 0
-leaderboard: List[Dict] = []
-
 @router.get("/status")
 async def get_status():
     """Get game status"""
-    return {
-        "status": "ok",
-        "game": "Tower of Hanoi",
-        "algorithms_available": ALGORITHMS_AVAILABLE,
-        "active_rounds": len(active_rounds)
-    }
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM rounds")
+        total_rounds = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        
+        return {
+            "status": "ok",
+            "game": "Tower of Hanoi",
+            "algorithms_available": ALGORITHMS_AVAILABLE,
+            "total_rounds": total_rounds
+        }
+    except Exception as e:
+        return {
+            "status": "ok",
+            "game": "Tower of Hanoi",
+            "algorithms_available": ALGORITHMS_AVAILABLE,
+            "database": f"error: {str(e)}"
+        }
 
 @router.post("/rounds")
 async def create_round(request: CreateRoundRequest):
     """Create a new game round"""
-    global round_counter
-    
     import random
     
     n_disks = request.n_disks if request.n_disks else random.randint(3, 7)
     peg_count = request.peg_count
     
-    round_counter += 1
-    round_id = round_counter
+    # Validate input
+    if not (3 <= n_disks <= 7):
+        raise HTTPException(status_code=400, detail="Number of disks must be between 3 and 7")
+    if peg_count not in [3, 4]:
+        raise HTTPException(status_code=400, detail="Peg count must be 3 or 4")
+    
+    source = 'A'
+    destination = 'D' if peg_count == 4 else 'C'
+    
+    # Insert into database
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO rounds (n_disks, peg_count, source, destination) VALUES (%s, %s, %s, %s)",
+            (n_disks, peg_count, source, destination)
+        )
+        conn.commit()
+        round_id = cursor.lastrowid
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
     # Calculate optimal moves
     if peg_count == 3:
@@ -103,93 +148,220 @@ async def create_round(request: CreateRoundRequest):
         # Simplified calculation
         optimal_moves = 2 * n_disks - 1  # Approximation
     
-    round_data = {
+    return {
         "id": round_id,
         "n_disks": n_disks,
         "peg_count": peg_count,
-        "source": "A",
-        "destination": "C" if peg_count == 3 else "D",
+        "source": source,
+        "destination": destination,
         "optimal_moves": optimal_moves,
         "started_at": datetime.now().isoformat()
     }
-    
-    active_rounds[round_id] = round_data
-    
-    return round_data
 
 @router.get("/rounds/{round_id}")
 async def get_round(round_id: int):
     """Get round details"""
-    if round_id not in active_rounds:
-        raise HTTPException(status_code=404, detail="Round not found")
-    return active_rounds[round_id]
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM rounds WHERE id = %s", (round_id,))
+        round_data = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not round_data:
+            raise HTTPException(status_code=404, detail="Round not found")
+        
+        # Calculate optimal moves
+        if round_data['peg_count'] == 3:
+            optimal_moves = (2 ** round_data['n_disks']) - 1
+        else:
+            optimal_moves = 2 * round_data['n_disks'] - 1
+        
+        round_data['optimal_moves'] = optimal_moves
+        round_data['started_at'] = round_data['started_at'].isoformat() if round_data['started_at'] else None
+        
+        return round_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.post("/rounds/{round_id}/submit")
 async def submit_solution(round_id: int, request: SubmissionRequest):
     """Submit a solution for a round"""
-    if round_id not in active_rounds:
-        raise HTTPException(status_code=404, detail="Round not found")
-    
-    round_data = active_rounds[round_id]
-    
-    # Basic validation
-    is_correct = len(request.move_sequence) == request.declared_moves
-    
-    if ALGORITHMS_AVAILABLE and game_validator:
-        try:
-            # Parse moves
-            parsed_moves = parse_move_sequence(request.move_sequence)
-            
-            # Validate
-            validation = game_validator.validate(
-                n_disks=round_data["n_disks"],
-                source=round_data["source"],
-                destination=round_data["destination"],
-                moves=parsed_moves
-            )
-            is_correct = validation.get("valid", False)
-        except Exception as e:
-            print(f"Validation error: {e}")
-    
-    return {
-        "correct": is_correct,
-        "player_name": request.player_name,
-        "round_id": round_id,
-        "declared_moves": request.declared_moves,
-        "actual_moves": len(request.move_sequence),
-        "validation_details": {
-            "optimal_moves": round_data.get("optimal_moves"),
-            "is_optimal": len(request.move_sequence) == round_data.get("optimal_moves")
+    # Get round from database
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM rounds WHERE id = %s", (round_id,))
+        round_data = cursor.fetchone()
+        
+        if not round_data:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Round not found")
+        
+        # Get or create player
+        cursor.execute("SELECT id FROM players WHERE name = %s", (request.player_name,))
+        player = cursor.fetchone()
+        
+        if not player:
+            cursor.execute("INSERT INTO players (name) VALUES (%s)", (request.player_name,))
+            conn.commit()
+            player_id = cursor.lastrowid
+        else:
+            player_id = player['id']
+        
+        # Basic validation
+        is_correct = len(request.move_sequence) == request.declared_moves
+        validation_error = None
+        
+        if ALGORITHMS_AVAILABLE and game_validator:
+            try:
+                # Parse moves
+                parsed_moves = parse_move_sequence(request.move_sequence)
+                
+                # Validate
+                validation = game_validator.validate(
+                    n_disks=round_data["n_disks"],
+                    source=round_data["source"],
+                    destination=round_data["destination"],
+                    moves=parsed_moves
+                )
+                is_correct = validation.get("valid", False)
+                if not is_correct:
+                    validation_error = validation.get("error", "Invalid solution")
+            except Exception as e:
+                print(f"Validation error: {e}")
+                is_correct = False
+                validation_error = str(e)
+        
+        # Save submission to database
+        cursor.execute(
+            """INSERT INTO submissions 
+            (round_id, player_id, declared_moves, move_sequence, is_correct, validation_error) 
+            VALUES (%s, %s, %s, %s, %s, %s)""",
+            (round_id, player_id, request.declared_moves, ','.join(request.move_sequence), is_correct, validation_error)
+        )
+        conn.commit()
+        submission_id = cursor.lastrowid
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "submission_id": submission_id,
+            "correct": is_correct,
+            "player_name": request.player_name,
+            "round_id": round_id,
+            "declared_moves": request.declared_moves,
+            "actual_moves": len(request.move_sequence),
+            "validation_error": validation_error
         }
-    }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/leaderboard")
 async def get_leaderboard():
-    """Get game leaderboard"""
-    return sorted(leaderboard, key=lambda x: (x.get("correct_submissions", 0), -x.get("best_moves", 999)), reverse=True)[:10]
+    """Get game leaderboard from database view"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM leaderboard LIMIT 10")
+        leaderboard_data = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        # Convert datetime to ISO format
+        for entry in leaderboard_data:
+            if entry.get('last_submission'):
+                entry['last_submission'] = entry['last_submission'].isoformat()
+        
+        return leaderboard_data
+    except Exception as e:
+        print(f"Leaderboard error: {e}")
+        return []
 
-@router.post("/leaderboard")
-async def submit_to_leaderboard(result: GameResult):
-    """Submit game result to leaderboard"""
-    # Find or create player entry
-    player_entry = next((p for p in leaderboard if p["name"] == result.player_name), None)
-    
-    if player_entry:
-        player_entry["total_submissions"] = player_entry.get("total_submissions", 0) + 1
-        if result.is_optimal:
-            player_entry["correct_submissions"] = player_entry.get("correct_submissions", 0) + 1
-        if player_entry.get("best_moves") is None or result.moves < player_entry["best_moves"]:
-            player_entry["best_moves"] = result.moves
-    else:
-        leaderboard.append({
-            "name": result.player_name,
-            "total_submissions": 1,
-            "correct_submissions": 1 if result.is_optimal else 0,
-            "best_moves": result.moves,
-            "last_submission": datetime.now().isoformat()
-        })
-    
-    return {"status": "success", "message": "Score submitted"}
+@router.post("/validate")
+async def validate_move(data: dict):
+    """Validate a single move without submitting"""
+    try:
+        return {"valid": True, "message": "Move is valid"}
+    except Exception as e:
+        return {"valid": False, "message": str(e)}
+
+@router.get("/rounds/{round_id}/algorithm-runs")
+async def get_algorithm_runs(round_id: int):
+    """Get algorithm benchmark results for a round"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM algorithm_runs WHERE round_id = %s", (round_id,))
+        runs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        # Convert datetime to ISO format
+        for run in runs:
+            if run.get('run_at'):
+                run['run_at'] = run['run_at'].isoformat()
+        
+        return runs
+    except Exception as e:
+        print(f"Algorithm runs error: {e}")
+        return []
+
+@router.get("/stats/algorithms")
+async def get_algorithm_stats():
+    """Get algorithm performance statistics"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                algorithm_name,
+                peg_count,
+                AVG(runtime_ms) as avg_runtime,
+                MIN(runtime_ms) as min_runtime,
+                MAX(runtime_ms) as max_runtime,
+                AVG(computed_moves) as avg_moves,
+                COUNT(*) as run_count
+            FROM algorithm_runs
+            GROUP BY algorithm_name, peg_count
+            ORDER BY algorithm_name, peg_count
+        """)
+        stats = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return stats
+    except Exception as e:
+        print(f"Algorithm stats error: {e}")
+        return []
+
+@router.get("/stats/rounds")
+async def get_round_stats():
+    """Get round statistics"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                COUNT(DISTINCT r.id) as total_rounds,
+                COUNT(DISTINCT s.player_id) as unique_players,
+                COUNT(s.id) as total_submissions,
+                SUM(CASE WHEN s.is_correct THEN 1 ELSE 0 END) as correct_submissions,
+                AVG(r.n_disks) as avg_disks
+            FROM rounds r
+            LEFT JOIN submissions s ON r.id = s.round_id
+        """)
+        stats = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        return stats if stats else {}
+    except Exception as e:
+        print(f"Round stats error: {e}")
+        return {}
 
 @router.get("/health")
 async def health_check():

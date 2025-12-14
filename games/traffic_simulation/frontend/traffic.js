@@ -139,8 +139,9 @@ function updateLeaderboardUI(leaderboardData) {
     }
 
     leaderboardData.forEach((entry, index) => {
-        // Format the time nicely (ensure the backend sends time in ms or a comparable unit)
-        const formattedTime = `${entry.runtime_ms.toFixed(2)} ms`;
+        // Format the time nicely - handle both runtime_ms and runtime_ek_ms
+        const runtime = entry.runtime_ms || entry.runtime_ek_ms || 0;
+        const formattedTime = `${runtime.toFixed(2)} ms`;
         
         const listItem = document.createElement('li');
         listItem.innerHTML = `
@@ -154,8 +155,12 @@ function updateLeaderboardUI(leaderboardData) {
 
 // Function to fetch the leaderboard data from the backend API
 async function fetchAndDisplayLeaderboard() {
+    console.log("Leaderboard button clicked!");
     const listElement = document.getElementById('leaderboard-list');
     const panelTitle = document.querySelector('#leaderboard-panel .panel-title');
+    
+    console.log("List element:", listElement);
+    console.log("Panel title:", panelTitle);
     
     // Set a loading state
     listElement.innerHTML = '<li>Loading rankings...</li>';
@@ -165,13 +170,17 @@ async function fetchAndDisplayLeaderboard() {
 
     try {
         // 1. Fetch data from your FastAPI API endpoint (assuming /api/leaderboard)
+        console.log("Fetching from /api/traffic/leaderboard...");
         const response = await fetch('/api/traffic/leaderboard');
+        
+        console.log("Response status:", response.status);
         
         if (!response.ok) {
             throw new Error(`Server Error (${response.status}) while fetching leaderboard.`);
         }
         
         const leaderboardData = await response.json(); 
+        console.log("Leaderboard data received:", leaderboardData);
         
         // 2. Update the UI with the fetched data
         updateLeaderboardUI(leaderboardData);
@@ -184,6 +193,9 @@ async function fetchAndDisplayLeaderboard() {
         panelTitle.textContent = 'GLOBAL PILOT RANKINGS';
     }
 }
+
+// Make function globally accessible for onclick handlers
+window.fetchAndDisplayLeaderboard = fetchAndDisplayLeaderboard;
 
 // 6. Execute initializeUI when the document is ready.
 document.addEventListener('DOMContentLoaded', initializeUI);

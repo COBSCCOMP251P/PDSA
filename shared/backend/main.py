@@ -94,10 +94,10 @@ except ImportError as e:
 # Snake Ladder routes (Member 1)
 try:
     from games.snake_ladder.api.routes import router as snake_ladder_router
-    app.include_router(snake_ladder_router, prefix="/api/snake-ladder", tags=["Snake Ladder"])
+    app.include_router(snake_ladder_router, prefix="/api")
     print("✅ Snake Ladder routes loaded")
-except ImportError:
-    print("⚠️  Snake Ladder routes not implemented yet")
+except ImportError as e:
+    print(f"⚠️  Snake Ladder routes not implemented yet: {e}")
 
 # Traffic Simulation routes (Member 2)
 try:

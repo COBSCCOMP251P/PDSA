@@ -41,6 +41,10 @@
         text-shadow: 0 0 5px #00ff00; /* Glow effect */
         margin: 0;
     }
+    nav {
+        display: flex;
+        gap: 10px;
+    }
     .nav-btn {
         background: transparent;
         border: 1px solid #00ff00;
@@ -48,7 +52,9 @@
         padding: 8px 15px;
         cursor: pointer;
         transition: all 0.2s;
-        margin-left: 10px;
+        margin-left: 0;
+        font-size: 14px;
+        border-radius: 4px;
     }
     .nav-btn:hover {
         background: #00ff001a;
@@ -197,7 +203,6 @@
             <h1>TRAFFIC-FLOW SIMULATOR: CYBERNET EDITION</h1>
             <nav>
                 <button class="nav-btn">Info</button>
-                <!-- <button class="nav-btn">Leaderboard</button>  -->
                 <button class="nav-btn" onclick="fetchAndDisplayLeaderboard()">Leaderboard</button>
             </nav>
         </header>
@@ -250,5 +255,5 @@
         </main>
     </div>
     <footer>&copy; 2023 PDSA Group Project</footer>
-<script src="traffic.js"></script>
+<script src="traffic.js?v=3"></script>
 </html>
