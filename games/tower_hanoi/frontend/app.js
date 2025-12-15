@@ -10,6 +10,20 @@ class TowerOfHanoiApp {
         this.algorithmChart = null;
         this.statsChart = null;
         
+        // Gameplay visualization properties
+        this.gameState = {
+            towers: [],
+            diskCount: 0,
+            pegCount: 0,
+            moveSequence: [],
+            currentMoveIndex: 0,
+            isAnimating: false,
+            animationSpeed: 500
+        };
+        
+        // Track manual play moves
+        this.manualMoveSequence = [];
+        
         this.init();
     }
 
@@ -23,34 +37,45 @@ class TowerOfHanoiApp {
     setupEventListeners() {
         // Navigation
         document.getElementById('homeBtn').addEventListener('click', () => this.showSection('homeSection'));
-        document.getElementById('gameBtn').addEventListener('click', () => this.showSection('gameSection'));
+        document.getElementById('playBtn').addEventListener('click', () => this.showSection('playSection'));
         document.getElementById('leaderboardBtn').addEventListener('click', () => {
             this.showSection('leaderboardSection');
             this.loadLeaderboard();
         });
-        document.getElementById('algorithmsBtn').addEventListener('click', () => {
-            this.showSection('algorithmsSection');
-            this.loadAlgorithmStats();
-        });
         document.getElementById('aboutBtn').addEventListener('click', () => this.showSection('aboutSection'));
 
         // Hero buttons
-        document.getElementById('startGameBtn').addEventListener('click', () => this.showSection('gameSection'));
+        document.getElementById('startGameBtn')?.addEventListener('click', () => this.showSection('playSection'));
         document.getElementById('viewLeaderboardBtn').addEventListener('click', () => {
             this.showSection('leaderboardSection');
             this.loadLeaderboard();
         });
 
-        // Game controls
-        document.getElementById('createRoundBtn').addEventListener('click', () => this.createRound());
+        // Play section controls
+        document.getElementById('startPlayBtn').addEventListener('click', () => this.startInteractivePlay());
+        
+        // Visualization controls
+        document.getElementById('playAnimationBtn')?.addEventListener('click', () => this.playAnimation());
+        document.getElementById('pauseAnimationBtn')?.addEventListener('click', () => this.pauseAnimation());
+        document.getElementById('resetVisualizationBtn')?.addEventListener('click', () => this.resetVisualization());
+        document.getElementById('animationSpeed')?.addEventListener('input', (e) => {
+            this.gameState.animationSpeed = parseInt(e.target.value);
+            document.getElementById('speedValue').textContent = `${e.target.value}ms`;
+        });
+
+        // Game controls (legacy - if needed)
+        document.getElementById('createRoundBtn')?.addEventListener('click', () => this.createRound());
         
         // Disk count preview
-        document.getElementById('diskCountSelect').addEventListener('change', () => this.updateDiskPreview());
-        document.getElementById('pegCount').addEventListener('change', () => this.updateDiskPreview());
+        document.getElementById('diskCountSelect')?.addEventListener('change', () => this.updateDiskPreview());
+        document.getElementById('pegCount')?.addEventListener('change', () => this.updateDiskPreview());
 
         // Refresh buttons
         document.getElementById('refreshLeaderboardBtn').addEventListener('click', () => this.loadLeaderboard());
-        document.getElementById('refreshStatsBtn').addEventListener('click', () => this.loadAlgorithmStats());
+        document.getElementById('refreshStatsBtn')?.addEventListener('click', () => this.loadAlgorithmStats());
+        
+        // Algorithm filter
+        document.getElementById('algorithmFilter').addEventListener('click', () => this.filterLeaderboard());
     }
 
     showSection(sectionId) {
@@ -69,7 +94,7 @@ class TowerOfHanoiApp {
 
         const buttonMap = {
             'homeSection': 'homeBtn',
-            'gameSection': 'gameBtn',
+            'playSection': 'playBtn',
             'leaderboardSection': 'leaderboardBtn',
             'algorithmsSection': 'algorithmsBtn',
             'aboutSection': 'aboutBtn'
@@ -139,10 +164,13 @@ class TowerOfHanoiApp {
             
             console.log('Form values:', { pegCount, diskCountSelect });
             
+            // Generate random number of disks between 5 and 10 if not specified
+            const randomDisks = Math.floor(Math.random() * 6) + 5; // Random number from 5 to 10
+            
             // Backend expects n_disks and peg_count
             const requestData = {
                 peg_count: pegCount,
-                n_disks: diskCountSelect ? parseInt(diskCountSelect) : 3  // Default to 3 if not selected
+                n_disks: diskCountSelect ? parseInt(diskCountSelect) : randomDisks
             };
             
             console.log('Request data:', requestData);
@@ -181,8 +209,8 @@ class TowerOfHanoiApp {
                     if (window.interactiveGame) {
                         console.log('Clearing existing interactive game');
                     }
-                    window.interactiveGame = new InteractiveTowerGame(gameContainer, roundData.n_disks);
-                    console.log('Interactive game initialized with', roundData.n_disks, 'disks');
+                    window.interactiveGame = new InteractiveTowerGame(gameContainer, roundData.n_disks, roundData.peg_count);
+                    console.log('Interactive game initialized with', roundData.n_disks, 'disks and', roundData.peg_count, 'pegs');
                 } catch (gameError) {
                     console.error('Error initializing interactive game:', gameError);
                     // Don't throw here, just warn
@@ -531,11 +559,23 @@ class TowerOfHanoiApp {
 
     async loadLeaderboard() {
         try {
-            const leaderboard = await this.apiCall('/leaderboard?limit=20');
+            const leaderboard = await this.apiCall('/leaderboard?limit=200');
+            this.fullLeaderboard = leaderboard; // Store full data
             this.displayLeaderboard(leaderboard);
         } catch (error) {
             console.error('Error loading leaderboard:', error);
         }
+    }
+    
+    filterLeaderboard() {
+        const filter = document.getElementById('algorithmFilter').value;
+        let filtered = this.fullLeaderboard || [];
+        
+        if (filter !== 'all') {
+            filtered = filtered.filter(player => player.algorithm_type === filter);
+        }
+        
+        this.displayLeaderboard(filtered);
     }
 
     displayLeaderboard(leaderboard) {
@@ -554,25 +594,38 @@ class TowerOfHanoiApp {
                 <tr>
                     <th>Rank</th>
                     <th>Player</th>
+                    <th>Algorithm</th>
+                    <th>Config</th>
                     <th>Best Moves</th>
                     <th>Avg Moves</th>
-                    <th>Correct Solutions</th>
-                    <th>Total Submissions</th>
+                    <th>Correct</th>
+                    <th>Total</th>
                     <th>Last Submission</th>
                 </tr>
             </thead>
             <tbody>
-                ${leaderboard.map((player, index) => `
-                    <tr>
-                        <td class="rank">#${index + 1}</td>
-                        <td>${player.name}</td>
-                        <td>${player.best_moves || '-'}</td>
-                        <td>${player.avg_moves ? player.avg_moves.toFixed(1) : '-'}</td>
-                        <td>${player.correct_submissions}</td>
-                        <td>${player.total_submissions}</td>
-                        <td>${player.last_submission ? new Date(player.last_submission).toLocaleDateString() : '-'}</td>
-                    </tr>
-                `).join('')}
+                ${leaderboard.map((player, index) => {
+                    const algorithmDisplay = player.algorithm_type 
+                        ? player.algorithm_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                        : '-';
+                    const configDisplay = player.disk_count && player.peg_count
+                        ? `${player.disk_count}D/${player.peg_count}P`
+                        : '-';
+                    
+                    return `
+                        <tr>
+                            <td class="rank">#${index + 1}</td>
+                            <td>${player.name}</td>
+                            <td><span class="badge badge-info">${algorithmDisplay}</span></td>
+                            <td><span class="badge badge-secondary">${configDisplay}</span></td>
+                            <td>${player.best_moves || '-'}</td>
+                            <td>${player.avg_moves ? player.avg_moves.toFixed(1) : '-'}</td>
+                            <td>${player.correct_submissions}</td>
+                            <td>${player.total_submissions}</td>
+                            <td>${player.last_submission ? new Date(player.last_submission).toLocaleDateString() : '-'}</td>
+                        </tr>
+                    `;
+                }).join('')}
             </tbody>
         `;
         
@@ -747,7 +800,7 @@ class TowerOfHanoiApp {
             const diskCount = parseInt(selectedDisks);
             this.visualizeGameState(diskCount, pegCount, true);
         } else {
-            // Show preview with random disk count (7 as example)
+            // Show preview with random disk count (7 as example, range is 5-10)
             this.visualizeGameState(7, pegCount, true);
         }
     }
@@ -870,6 +923,444 @@ class TowerOfHanoiApp {
             container.appendChild(notice);
         }
     }
+
+    // ===== GAME VISUALIZATION METHODS =====
+    
+    initializeGameVisualization(diskCount, pegCount) {
+        this.gameState.diskCount = diskCount;
+        this.gameState.pegCount = pegCount;
+        this.gameState.towers = Array(pegCount).fill().map(() => []);
+        
+        // Initialize first tower with all disks (largest to smallest)
+        for (let i = diskCount; i >= 1; i--) {
+            this.gameState.towers[0].push(i);
+        }
+        
+        // Show visualization board
+        document.getElementById('visualGameBoard').style.display = 'block';
+        
+        // Clear previous content
+        const towerDisplay = document.getElementById('towerDisplay');
+        towerDisplay.innerHTML = '';
+        
+        // Initialize interactive game for manual play
+        if (this.currentPlay && !this.currentPlay.isAutoCompleted) {
+            // Create interactive game container
+            const interactiveContainer = document.createElement('div');
+            interactiveContainer.id = 'interactiveGameContainer';
+            towerDisplay.appendChild(interactiveContainer);
+            
+            // Initialize interactive game with drag-and-drop
+            if (window.interactiveGame) {
+                window.interactiveGame = null;
+            }
+            window.interactiveGame = new InteractiveTowerGame(
+                interactiveContainer, 
+                diskCount, 
+                pegCount
+            );
+            
+            // Auto-start the game with current player info
+            window.interactiveGame.playerName = this.currentPlay.playerName;
+            window.interactiveGame.gameActive = true;
+            window.interactiveGame.startTime = new Date();
+            window.interactiveGame.drawTowers();
+            window.interactiveGame.startTimer();
+        } else {
+            // Show static towers for animation
+            this.renderTowers();
+        }
+    }
+    
+    renderTowers() {
+        const towerDisplay = document.getElementById('towerDisplay');
+        if (!towerDisplay) return;
+        
+        towerDisplay.innerHTML = '';
+        
+        const pegLabels = ['A', 'B', 'C', 'D'];
+        
+        for (let i = 0; i < this.gameState.pegCount; i++) {
+            const towerContainer = document.createElement('div');
+            towerContainer.className = 'tower-container';
+            towerContainer.dataset.tower = i;
+            
+            // Tower label
+            const label = document.createElement('div');
+            label.className = 'tower-label';
+            label.textContent = `Tower ${pegLabels[i]}`;
+            towerContainer.appendChild(label);
+            
+            // Tower pole
+            const pole = document.createElement('div');
+            pole.className = 'tower-pole';
+            
+            // Disks container
+            const disksContainer = document.createElement('div');
+            disksContainer.className = 'tower-disks';
+            
+            // Render disks on this tower
+            const disks = this.gameState.towers[i];
+            disks.forEach((diskSize, index) => {
+                const disk = document.createElement('div');
+                disk.className = `disk disk-${diskSize}`;
+                disk.textContent = diskSize;
+                disk.dataset.size = diskSize;
+                disksContainer.appendChild(disk);
+            });
+            
+            pole.appendChild(disksContainer);
+            towerContainer.appendChild(pole);
+            
+            // Tower base
+            const base = document.createElement('div');
+            base.className = 'tower-base';
+            towerContainer.appendChild(base);
+            
+            towerDisplay.appendChild(towerContainer);
+        }
+    }
+    
+    async animateMove(fromTower, toTower) {
+        return new Promise((resolve) => {
+            // Get the disk to move
+            const disk = this.gameState.towers[fromTower].pop();
+            
+            // Add moving animation class
+            const towerElements = document.querySelectorAll('.tower-container');
+            const fromElement = towerElements[fromTower];
+            const diskElements = fromElement.querySelectorAll('.disk');
+            const movingDisk = diskElements[diskElements.length - 1];
+            
+            if (movingDisk) {
+                movingDisk.classList.add('moving');
+            }
+            
+            // Wait for animation
+            setTimeout(() => {
+                // Move disk to destination tower
+                this.gameState.towers[toTower].push(disk);
+                
+                // Re-render towers
+                this.renderTowers();
+                
+                // Update move count
+                this.gameState.currentMoveIndex++;
+                if (this.currentPlay) {
+                    this.currentPlay.moveCount++;
+                    document.getElementById('movesMade').textContent = this.currentPlay.moveCount;
+                }
+                
+                resolve();
+            }, this.gameState.animationSpeed);
+        });
+    }
+    
+    async playAnimation() {
+        if (!this.gameState.moveSequence || this.gameState.moveSequence.length === 0) {
+            this.showNotification('No moves to animate', 'warning');
+            return;
+        }
+        
+        // Reset to initial state if starting from beginning
+        if (this.gameState.currentMoveIndex === 0) {
+            this.gameState.towers = Array(this.gameState.pegCount).fill().map(() => []);
+            for (let i = this.gameState.diskCount; i >= 1; i--) {
+                this.gameState.towers[0].push(i);
+            }
+            this.renderTowers();
+        }
+        
+        this.gameState.isAnimating = true;
+        document.getElementById('playAnimationBtn').style.display = 'none';
+        document.getElementById('pauseAnimationBtn').style.display = 'inline-block';
+        
+        while (this.gameState.currentMoveIndex < this.gameState.moveSequence.length && this.gameState.isAnimating) {
+            const move = this.gameState.moveSequence[this.gameState.currentMoveIndex];
+            const [from, to] = this.parseMoveString(move);
+            
+            await this.animateMove(from, to);
+        }
+        
+        this.gameState.isAnimating = false;
+        document.getElementById('playAnimationBtn').style.display = 'inline-block';
+        document.getElementById('pauseAnimationBtn').style.display = 'none';
+        
+        if (this.gameState.currentMoveIndex >= this.gameState.moveSequence.length) {
+            this.showNotification('Animation complete!', 'success');
+        }
+    }
+    
+    pauseAnimation() {
+        this.gameState.isAnimating = false;
+        document.getElementById('playAnimationBtn').style.display = 'inline-block';
+        document.getElementById('pauseAnimationBtn').style.display = 'none';
+    }
+    
+    resetVisualization() {
+        this.gameState.currentMoveIndex = 0;
+        this.initializeGameVisualization(this.gameState.diskCount, this.gameState.pegCount);
+        this.showNotification('Visualization reset', 'success');
+    }
+    
+    parseMoveString(move) {
+        // Parse move string like "A->B" to tower indices
+        const pegLabels = ['A', 'B', 'C', 'D'];
+        const [fromLabel, toLabel] = move.split('->');
+        return [pegLabels.indexOf(fromLabel), pegLabels.indexOf(toLabel)];
+    }
+
+    // ===== NEW GAMEPLAY METHODS =====
+    
+    async startInteractivePlay() {
+        const playerName = document.getElementById('playPlayerName').value.trim();
+        const diskCountValue = document.getElementById('playDiskCount').value;
+        // Handle random disk selection (5-10)
+        const diskCount = diskCountValue === 'random' 
+            ? Math.floor(Math.random() * 6) + 5  // Random number between 5 and 10
+            : parseInt(diskCountValue);
+        const pegCount = parseInt(document.getElementById('playPegCount').value);
+        
+        // Auto-select algorithm based on peg count - backend will determine recursive/iterative
+        const algorithmName = pegCount === 3 ? 'Auto 3-Peg' : 'Auto 4-Peg';
+        
+        if (!playerName) {
+            this.showNotification('Please enter your name', 'error');
+            return;
+        }
+        
+        // Store game settings
+        this.currentPlay = {
+            playerName,
+            diskCount,
+            pegCount,
+            algorithmName,
+            startTime: Date.now(),
+            moves: [],
+            moveCount: 0
+        };
+        
+        // Reset manual move tracking
+        this.manualMoveSequence = [];
+        
+        // Initialize game visualization
+        this.initializeGameVisualization(diskCount, pegCount);
+        
+        // Show game info and controls
+        document.getElementById('playGameInfo').style.display = 'block';
+        document.getElementById('currentAlgorithm').textContent = algorithmName;
+        document.getElementById('optimalMoves').textContent = this.calculateOptimalMoves(diskCount, pegCount);
+        
+        // Start timer
+        this.playTimer = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - this.currentPlay.startTime) / 1000);
+            document.getElementById('timeElapsed').textContent = `${elapsed}s`;
+        }, 1000);
+        
+        this.showNotification(`Game started! Good luck, ${playerName}!`, 'success');
+    }
+    
+    calculateOptimalMoves(diskCount, pegCount) {
+        if (pegCount === 3) {
+            return Math.pow(2, diskCount) - 1;
+        } else {
+            // 4-peg optimal calculation
+            let dp = [0, 1, 3];
+            for (let i = 3; i <= diskCount; i++) {
+                let min = Infinity;
+                for (let k = 1; k < i; k++) {
+                    const moves = 2 * dp[k] + (Math.pow(2, i - k) - 1);
+                    min = Math.min(min, moves);
+                }
+                dp[i] = min;
+            }
+            return dp[diskCount];
+        }
+    }
+    
+    async autoCompleteGame() {
+        if (!this.currentPlay) {
+            this.showNotification('No game in progress', 'error');
+            return;
+        }
+        
+        try {
+            this.showLoading();
+            
+            // Use default recursive algorithm for auto-complete
+            const algorithmName = this.currentPlay.pegCount === 3 ? 'Recursive 3-Peg' : 'Recursive 4-Peg';
+            
+            const response = await this.apiCall('/gameplay/auto-complete', 'POST', {
+                disk_count: this.currentPlay.diskCount,
+                peg_count: this.currentPlay.pegCount,
+                algorithm_name: algorithmName
+            });
+            
+            // Store the solution
+            this.currentPlay.solution = response;
+            this.currentPlay.moveCount = response.move_count;
+            this.currentPlay.algorithmExecutionTimeMs = response.execution_time_ms;
+            this.currentPlay.moves = response.move_sequence;
+            this.currentPlay.isAutoCompleted = true;
+            
+            this.hideLoading();
+            
+            // Animate the solution in the interactive game
+            if (window.interactiveGame) {
+                this.showNotification('Auto-solving the game... Watch the moves!', 'success');
+                await this.animateInteractiveSolution(response.move_sequence);
+            } else {
+                // Fallback to static animation if interactive game not available
+                const towerDisplay = document.getElementById('towerDisplay');
+                towerDisplay.innerHTML = '';
+                this.renderTowers();
+                
+                // Set up animation
+                this.gameState.moveSequence = response.move_sequence;
+                this.gameState.currentMoveIndex = 0;
+                
+                // Show animation controls
+                document.getElementById('playAnimationBtn').style.display = 'inline-block';
+                document.getElementById('resetVisualizationBtn').style.display = 'inline-block';
+                document.getElementById('animationSpeedControl').style.display = 'flex';
+                
+                // Update UI
+                document.getElementById('movesMade').textContent = response.move_count;
+                
+                // Show results
+                this.displayPlayResults();
+                
+                this.showNotification('Game auto-completed! Click "Play Animation" to visualize the solution', 'success');
+            }
+            
+        } catch (error) {
+            this.hideLoading();
+            this.showNotification(`Failed to auto-complete: ${error.message}`, 'error');
+        }
+    }
+    
+    async animateInteractiveSolution(moveSequence) {
+        const delay = 800; // 800ms between moves
+        
+        for (const move of moveSequence) {
+            // Parse move like "A->B"
+            const pegLabels = ['A', 'B', 'C', 'D'];
+            const [fromLabel, toLabel] = move.split('->');
+            const fromPeg = pegLabels.indexOf(fromLabel);
+            const toPeg = pegLabels.indexOf(toLabel);
+            
+            // Execute the move in the interactive game
+            if (window.interactiveGame && fromPeg !== -1 && toPeg !== -1) {
+                window.interactiveGame.makeMove(fromPeg, toPeg);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+        
+        // Show results after animation completes
+        this.displayPlayResults();
+        this.showNotification('Auto-solve complete! Click "Save Game" to save your result.', 'success');
+    }
+    
+    async saveGameplaySession() {
+        if (!this.currentPlay || !this.currentPlay.solution) {
+            this.showNotification('Please complete or auto-complete the game first', 'error');
+            return;
+        }
+        
+        try {
+            this.showLoading();
+            
+            const gameplayTimeMs = Date.now() - this.currentPlay.startTime;
+            
+            const response = await this.apiCall('/gameplay/save', 'POST', {
+                player_name: this.currentPlay.playerName,
+                algorithm_name: this.currentPlay.algorithmName,
+                disk_count: this.currentPlay.diskCount,
+                peg_count: this.currentPlay.pegCount,
+                move_count: this.currentPlay.moveCount,
+                algorithm_execution_time_ms: this.currentPlay.algorithmExecutionTimeMs,
+                gameplay_time_ms: gameplayTimeMs,
+                generated_sequence: this.currentPlay.moves,
+                is_auto_completed: this.currentPlay.isAutoCompleted || false
+            });
+            
+            this.hideLoading();
+            this.showNotification(`Game saved successfully! Session ID: ${response.id}`, 'success');
+            
+            // Stop timer
+            if (this.playTimer) {
+                clearInterval(this.playTimer);
+                this.playTimer = null;
+            }
+            
+            // Reset for new game
+            setTimeout(() => {
+                this.resetPlaySection();
+            }, 2000);
+            
+        } catch (error) {
+            this.hideLoading();
+            this.showNotification(`Failed to save game: ${error.message}`, 'error');
+        }
+    }
+    
+    displayPlayResults() {
+        const resultsDiv = document.getElementById('playResultsDiv');
+        const resultsContent = document.getElementById('playResultsContent');
+        
+        if (!this.currentPlay || !this.currentPlay.solution) {
+            return;
+        }
+        
+        const optimalMoves = this.calculateOptimalMoves(this.currentPlay.diskCount, this.currentPlay.pegCount);
+        const efficiency = ((optimalMoves / this.currentPlay.moveCount) * 100).toFixed(1);
+        
+        resultsContent.innerHTML = `
+            <div class="results-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Moves</div>
+                    <div class="stat-value">${this.currentPlay.moveCount}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Optimal Moves</div>
+                    <div class="stat-value">${optimalMoves}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Efficiency</div>
+                    <div class="stat-value">${efficiency}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Execution Time</div>
+                    <div class="stat-value">${this.currentPlay.algorithmExecutionTimeMs.toFixed(3)}ms</div>
+                </div>
+            </div>
+            <div class="move-sequence">
+                <h4>Move Sequence:</h4>
+                <div class="sequence-container">
+                    ${this.currentPlay.moves.map((move, i) => 
+                        `<span class="move-item">${i + 1}. ${move}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+        
+        resultsDiv.style.display = 'block';
+    }
+    
+    resetPlaySection() {
+        document.getElementById('playPlayerName').value = '';
+        document.getElementById('playGameInfo').style.display = 'none';
+        document.getElementById('playResultsDiv').style.display = 'none';
+        document.getElementById('movesMade').textContent = '0';
+        document.getElementById('timeElapsed').textContent = '0s';
+        
+        if (this.playTimer) {
+            clearInterval(this.playTimer);
+            this.playTimer = null;
+        }
+        
+        this.currentPlay = null;
+    }
 }
 
 /**
@@ -877,17 +1368,19 @@ class TowerOfHanoiApp {
  * Handles visual gameplay with click-to-move functionality
  */
 class InteractiveTowerGame {
-    constructor(container, diskCount = 3) {
+    constructor(container, diskCount = 3, pegCount = 3) {
         if (!container) {
             throw new Error('Container element is required for InteractiveTowerGame');
         }
         
         this.container = container;
         this.diskCount = diskCount;
-        this.towers = [[], [], []];
+        this.pegCount = pegCount;
+        this.towers = Array(pegCount).fill().map(() => []);
         this.selectedDisk = null;
         this.selectedPeg = null;
         this.moves = 0;
+        this.moveSequence = [];  // Track all moves
         this.startTime = null;
         this.gameActive = false;
         this.playerName = '';
@@ -897,12 +1390,13 @@ class InteractiveTowerGame {
     }
 
     initializeTowers() {
-        this.towers = [[], [], []];
+        this.towers = Array(this.pegCount).fill().map(() => []);
         // Initialize first peg with disks (largest to smallest)
         for (let i = this.diskCount; i >= 1; i--) {
             this.towers[0].push(i);
         }
         this.moves = 0;
+        this.moveSequence = [];  // Reset move sequence
         this.selectedDisk = null;
         this.selectedPeg = null;
     }
@@ -914,60 +1408,14 @@ class InteractiveTowerGame {
         }
         
         this.container.innerHTML = `
-            <div class="player-setup ${this.gameActive ? 'hidden' : ''}">
-                <div class="setup-card">
-                    <h4>🎮 Start New Game</h4>
-                    <div class="input-group">
-                        <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="50" required>
-                        <select id="gameDiskCount">
-                            <option value="3" ${this.diskCount === 3 ? 'selected' : ''}>3 Disks</option>
-                            <option value="4" ${this.diskCount === 4 ? 'selected' : ''}>4 Disks</option>
-                            <option value="5" ${this.diskCount === 5 ? 'selected' : ''}>5 Disks</option>
-                            <option value="6" ${this.diskCount === 6 ? 'selected' : ''}>6 Disks</option>
-                            <option value="7" ${this.diskCount === 7 ? 'selected' : ''}>7 Disks</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="interactiveGame.startGame()">Start Game</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="player-info ${this.gameActive ? '' : 'hidden'}">
-                <div class="player-card">
-                    <div class="player-name">
-                        <span>🎯</span>
-                        <span id="currentPlayerName">${this.playerName}</span>
-                    </div>
-                    <div class="game-stats">
-                        <div class="stat">
-                            <span class="stat-label">Moves</span>
-                            <span class="stat-value" id="moveCount">${this.moves}</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-label">Time</span>
-                            <span class="stat-value" id="gameTime">00:00</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-label">Disks</span>
-                            <span class="stat-value">${this.diskCount}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="game-status">
                 <div id="statusMessage" class="status-message info">
-                    Click on the top disk of any peg to select it, then click on a destination peg to move it.
+                    🎯 Drag disks between pegs or click to select and move. Get all disks to the rightmost peg!
                 </div>
             </div>
 
             <div class="pegs-container" id="pegsContainer">
                 <!-- Towers will be drawn here -->
-            </div>
-
-            <div class="game-controls ${this.gameActive ? '' : 'hidden'}">
-                <button class="btn btn-secondary" onclick="interactiveGame.resetGame()">🔄 Reset</button>
-                <button class="btn btn-warning" onclick="interactiveGame.showHint()">💡 Hint</button>
-                <button class="btn btn-danger" onclick="interactiveGame.quitGame()">🚪 Quit</button>
             </div>
         `;
         
@@ -976,6 +1424,7 @@ class InteractiveTowerGame {
 
     startGame() {
         const nameInput = document.getElementById('playerNameInput');
+        const pegSelect = document.getElementById('gamePegCount');
         const diskSelect = document.getElementById('gameDiskCount');
         
         if (!nameInput.value.trim()) {
@@ -984,6 +1433,7 @@ class InteractiveTowerGame {
         }
 
         this.playerName = nameInput.value.trim();
+        this.pegCount = parseInt(pegSelect.value);
         this.diskCount = parseInt(diskSelect.value);
         this.gameActive = true;
         this.startTime = new Date();
@@ -1002,9 +1452,9 @@ class InteractiveTowerGame {
         
         const canvasWidth = pegsContainer.clientWidth || 600;
         const canvasHeight = 300;
-        const pegWidth = Math.floor(canvasWidth / 3) - 10;
+        const pegWidth = Math.floor(canvasWidth / this.pegCount) - 10;
         
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < this.pegCount; i++) {
             const pegContainer = document.createElement('div');
             pegContainer.className = 'peg-container';
             pegContainer.dataset.peg = i;
@@ -1012,7 +1462,7 @@ class InteractiveTowerGame {
                 width: ${pegWidth}px;
                 height: ${canvasHeight}px;
                 display: flex;
-                flex-direction: column-reverse;
+                flex-direction: column;
                 align-items: center;
                 justify-content: flex-end;
                 position: relative;
@@ -1028,6 +1478,10 @@ class InteractiveTowerGame {
             // Add click handler for peg
             pegContainer.addEventListener('click', () => this.handlePegClick(i));
             
+            // Add drag-and-drop handlers for peg
+            pegContainer.addEventListener('dragover', (e) => this.handleDragOver(e));
+            pegContainer.addEventListener('drop', (e) => this.handleDrop(e, i));
+            
             // Add peg rod
             const pegRod = document.createElement('div');
             pegRod.style.cssText = `
@@ -1042,14 +1496,31 @@ class InteractiveTowerGame {
             `;
             pegContainer.appendChild(pegRod);
             
+            // Draw peg base (the platform at the bottom of the stick)
+            const pegBase = document.createElement('div');
+            pegBase.style.cssText = `
+                width: 80px;
+                height: 15px;
+                background: linear-gradient(to right, #8b7355, #654321, #8b7355);
+                border-radius: 8px;
+                position: absolute;
+                bottom: 15px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+            `;
+            pegContainer.appendChild(pegBase);
+            
             // Add peg label
             const pegLabel = document.createElement('div');
+            const isTarget = (i === this.pegCount - 1);
             pegLabel.style.cssText = `
                 position: absolute;
                 top: 5px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: rgba(59, 130, 246, 0.8);
+                background: ${isTarget ? 'rgba(34, 197, 94, 0.9)' : 'rgba(59, 130, 246, 0.8)'};
                 color: white;
                 padding: 4px 8px;
                 border-radius: 12px;
@@ -1057,12 +1528,19 @@ class InteractiveTowerGame {
                 font-weight: 600;
                 z-index: 2;
             `;
-            pegLabel.textContent = ['Source', 'Auxiliary', 'Target'][i];
+            // Label the first peg as Source, last as Target, others as Auxiliary
+            if (i === 0) {
+                pegLabel.textContent = 'Source';
+            } else if (i === this.pegCount - 1) {
+                pegLabel.textContent = 'Target';
+            } else {
+                pegLabel.textContent = 'Auxiliary';
+            }
             pegContainer.appendChild(pegLabel);
             
-            // Add disks
+            // Add disks (in reverse order to stack from bottom with column flex-direction)
             const disks = this.towers[i];
-            for (let j = 0; j < disks.length; j++) {
+            for (let j = disks.length - 1; j >= 0; j--) {
                 const diskSize = disks[j];
                 const diskElement = document.createElement('div');
                 diskElement.className = 'disk';
@@ -1097,6 +1575,11 @@ class InteractiveTowerGame {
                     this.handleDiskClick(diskSize, i);
                 });
                 
+                // Add drag-and-drop handlers
+                diskElement.draggable = true;
+                diskElement.addEventListener('dragstart', (e) => this.handleDragStart(e, diskSize, i));
+                diskElement.addEventListener('dragend', (e) => this.handleDragEnd(e));
+                
                 // Mark top disk as movable
                 if (j === disks.length - 1) {
                     diskElement.classList.add('movable');
@@ -1106,6 +1589,120 @@ class InteractiveTowerGame {
             }
             
             pegsContainer.appendChild(pegContainer);
+        }
+    }
+
+    handleDragStart(e, diskSize, pegIndex) {
+        if (!this.gameActive) return;
+        
+        const topDisk = this.towers[pegIndex][this.towers[pegIndex].length - 1];
+        
+        if (topDisk !== diskSize) {
+            e.preventDefault();
+            this.showStatus('You can only drag the top disk from each peg! 🚫', 'error');
+            return;
+        }
+        
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('diskSize', diskSize);
+        e.dataTransfer.setData('fromPeg', pegIndex);
+        
+        e.target.style.opacity = '0.5';
+        this.selectedDisk = diskSize;
+        this.selectedPeg = pegIndex;
+        
+        this.showStatus(`Dragging disk ${diskSize}... Drop on a valid peg! 🎯`, 'info');
+    }
+    
+    handleDragEnd(e) {
+        e.target.style.opacity = '1';
+    }
+    
+    handleDragOver(e) {
+        if (!this.gameActive) return;
+        
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        
+        // Add visual feedback
+        e.currentTarget.style.borderColor = '#3b82f6';
+        e.currentTarget.style.backgroundColor = '#eff6ff';
+    }
+    
+    handleDrop(e, toPeg) {
+        if (!this.gameActive) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Reset visual feedback
+        e.currentTarget.style.borderColor = 'transparent';
+        e.currentTarget.style.backgroundColor = '#e5e7eb';
+        
+        const diskSize = parseInt(e.dataTransfer.getData('diskSize'));
+        const fromPeg = parseInt(e.dataTransfer.getData('fromPeg'));
+        
+        if (fromPeg === toPeg) {
+            this.showStatus('Disk returned to same peg. 🔄', 'info');
+            this.selectedDisk = null;
+            this.selectedPeg = null;
+            return;
+        }
+        
+        // Try to move disk to this peg
+        if (this.isValidMove(fromPeg, toPeg)) {
+            this.makeMove(fromPeg, toPeg);
+            this.selectedDisk = null;
+            this.selectedPeg = null;
+            this.updateVisualSelection();
+        } else {
+            this.showStatus('Invalid move! You cannot place a larger disk on a smaller one. ❌', 'error');
+            this.selectedDisk = null;
+            this.selectedPeg = null;
+        }
+    }
+    
+    async autoSaveGameCompletion(duration) {
+        // Check if we have player data from the interactive game
+        if (!this.playerName) {
+            console.warn('No player name to save game');
+            return;
+        }
+        
+        try {
+            const gameplayTimeMs = duration * 1000; // Convert seconds to ms
+            
+            const gameData = {
+                player_name: this.playerName,
+                algorithm_name: 'manual',
+                disk_count: this.diskCount,
+                peg_count: this.pegCount,
+                move_count: this.moves,
+                algorithm_execution_time_ms: gameplayTimeMs,
+                gameplay_time_ms: gameplayTimeMs,
+                generated_sequence: this.moveSequence || [],
+                is_auto_completed: false
+            };
+            
+            console.log('Auto-saving completed game:', gameData);
+            
+            const response = await fetch('http://localhost:8000/api/hanoi/gameplay/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(gameData)
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Game automatically saved! Session ID:', result.id);
+                this.showStatus(`🎉 Game completed and saved automatically! (Session: ${result.id})`, 'success');
+            } else {
+                console.error('Failed to auto-save game:', response.status);
+            }
+        } catch (error) {
+            console.error('Error auto-saving game:', error);
         }
     }
 
@@ -1187,10 +1784,36 @@ class InteractiveTowerGame {
         this.towers[toPeg].push(disk);
         this.moves++;
         
-        document.getElementById('moveCount').textContent = this.moves;
+        // Record the move in sequence (A, B, C, D format)
+        const pegNames = ['A', 'B', 'C', 'D'];
+        const moveNotation = `${pegNames[fromPeg]}->${pegNames[toPeg]}`;
+        
+        // Track move in instance array
+        this.moveSequence.push(moveNotation);
+        
+        // Add to global manual move sequence for tracking
+        if (window.app) {
+            window.app.manualMoveSequence.push(moveNotation);
+            if (window.app.currentPlay) {
+                window.app.currentPlay.moves = [...window.app.manualMoveSequence];
+                window.app.currentPlay.moveCount = this.moves;
+            }
+        }
+        
+        // Update move counter in both places
+        const moveCountEl = document.getElementById('moveCount');
+        const movesmadeEl = document.getElementById('movesMade');
+        if (moveCountEl) moveCountEl.textContent = this.moves;
+        if (movesmadeEl) movesmadeEl.textContent = this.moves;
+        
         this.drawTowers();
         
         this.showStatus(`Great move! Disk ${disk} moved successfully. ✅`, 'success');
+        
+        // Check if game is complete after this move
+        if (this.checkWinCondition()) {
+            setTimeout(() => this.gameWon(), 300);
+        }
     }
 
     updateVisualSelection() {
@@ -1212,7 +1835,7 @@ class InteractiveTowerGame {
             });
             
             // Highlight valid destination pegs
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < this.pegCount; i++) {
                 if (i !== this.selectedPeg && this.isValidMove(this.selectedPeg, i)) {
                     document.querySelector(`.peg-container[data-peg="${i}"]`).classList.add('peg-highlight');
                 }
@@ -1221,16 +1844,19 @@ class InteractiveTowerGame {
     }
 
     checkWinCondition() {
-        return this.towers[2].length === this.diskCount;
+        return this.towers[this.pegCount - 1].length === this.diskCount;
     }
 
-    gameWon() {
+    async gameWon() {
         this.gameActive = false;
         const endTime = new Date();
         const duration = Math.floor((endTime - this.startTime) / 1000);
         
+        // Auto-save game completion to database
+        await this.autoSaveGameCompletion(duration);
+        
         this.showVictoryScreen(duration);
-        this.saveGameResult(duration);
+        // Removed duplicate saveGameResult() call
     }
 
     showVictoryScreen(duration) {
@@ -1263,6 +1889,7 @@ class InteractiveTowerGame {
             const gameData = {
                 player_name: this.playerName,
                 disk_count: this.diskCount,
+                peg_count: this.pegCount,
                 moves: this.moves,
                 time_taken: duration,
                 is_optimal: this.moves === (Math.pow(2, this.diskCount) - 1)
@@ -1270,7 +1897,7 @@ class InteractiveTowerGame {
 
             console.log('Saving game result:', gameData);
 
-            const response = await fetch('/api/hanoi/save-game', {
+            const response = await fetch('http://localhost:8000/api/hanoi/leaderboard', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1309,7 +1936,10 @@ class InteractiveTowerGame {
             if (this.startTime && this.gameActive) {
                 const now = new Date();
                 const elapsed = Math.floor((now - this.startTime) / 1000);
-                document.getElementById('gameTime').textContent = this.formatTime(elapsed);
+                const gameTimeEl = document.getElementById('gameTime');
+                const timeElapsedEl = document.getElementById('timeElapsed');
+                if (gameTimeEl) gameTimeEl.textContent = this.formatTime(elapsed);
+                if (timeElapsedEl) timeElapsedEl.textContent = `${elapsed}s`;
             }
         }, 1000);
     }
@@ -1351,6 +1981,11 @@ class InteractiveTowerGame {
             this.gameActive = false;
             clearInterval(this.timerInterval);
             this.setupGameUI();
+            
+            // Navigate back to home page
+            if (window.app) {
+                window.app.showSection('homeSection');
+            }
         }
     }
 
@@ -1392,7 +2027,7 @@ function initializeInteractiveGame() {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new TowerOfHanoiApp();
+    window.app = new TowerOfHanoiApp();
     
     // Initialize interactive game if container exists
     setTimeout(initializeInteractiveGame, 100);

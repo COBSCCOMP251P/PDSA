@@ -44,22 +44,25 @@ CREATE TABLE submissions (
     INDEX idx_submitted_at (submitted_at)
 );
 
--- Algorithm runs table to store benchmark results
-CREATE TABLE algorithm_runs (
+
+-- Gameplay sessions table to store individual game play sessions
+CREATE TABLE gameplay_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    round_id INT NOT NULL,
+    player_name VARCHAR(100) NOT NULL,
     algorithm_name VARCHAR(100) NOT NULL,
+    disk_count INT NOT NULL CHECK (disk_count BETWEEN 3 AND 10),
     peg_count INT NOT NULL CHECK (peg_count IN (3, 4)),
-    computed_moves INT NOT NULL,
-    runtime_ms DECIMAL(12, 3) NOT NULL,
-    generated_sequence TEXT,
-    run_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
-    INDEX idx_round_id (round_id),
+    move_count INT NOT NULL,
+    algorithm_execution_time_ms DECIMAL(12, 3) NOT NULL,
+    gameplay_time_ms INT NOT NULL,
+    generated_sequence TEXT NOT NULL,
+    is_auto_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_player_name (player_name),
     INDEX idx_algorithm_name (algorithm_name),
+    INDEX idx_disk_count (disk_count),
     INDEX idx_peg_count (peg_count),
-    INDEX idx_runtime_ms (runtime_ms),
-    INDEX idx_run_at (run_at)
+    INDEX idx_created_at (created_at)
 );
 
 -- Create a view for leaderboard with player stats
