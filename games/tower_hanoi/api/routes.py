@@ -155,11 +155,13 @@ async def create_round(request: CreateRoundRequest):
             conn = get_db_connection()
             cursor = conn.cursor()
             for result in results:
+                # Convert sequence list to string
+                sequence_str = ",".join(result.sequence) if result.sequence else None
                 cursor.execute(
                     """INSERT INTO algorithm_runs 
-                    (round_id, algorithm_name, peg_count, computed_moves, runtime_ms) 
-                    VALUES (%s, %s, %s, %s, %s)""",
-                    (round_id, result.algorithm_name, peg_count, result.moves, result.runtime_ms)
+                    (round_id, algorithm_name, peg_count, computed_moves, runtime_ms, generated_sequence) 
+                    VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (round_id, result.algorithm_name, peg_count, result.moves, result.runtime_ms, sequence_str)
                 )
             conn.commit()
             cursor.close()
@@ -352,11 +354,13 @@ async def save_game_result(game_result: GameResult):
                 conn = get_db_connection()
                 cursor = conn.cursor()
                 for result in results:
+                    # Convert sequence list to string
+                    sequence_str = ",".join(result.sequence) if result.sequence else None
                     cursor.execute(
                         """INSERT INTO algorithm_runs 
-                        (round_id, algorithm_name, peg_count, computed_moves, runtime_ms) 
-                        VALUES (%s, %s, %s, %s, %s)""",
-                        (round_id, result.algorithm_name, 3, result.moves, result.runtime_ms)
+                        (round_id, algorithm_name, peg_count, computed_moves, runtime_ms, generated_sequence) 
+                        VALUES (%s, %s, %s, %s, %s, %s)""",
+                        (round_id, result.algorithm_name, 3, result.moves, result.runtime_ms, sequence_str)
                     )
                 conn.commit()
                 cursor.close()

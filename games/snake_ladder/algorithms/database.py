@@ -28,22 +28,10 @@ class DatabaseConnection:
     def connect(self):
         """Establish database connection."""
         try:
-            # FIXED: mysql.connector uses 'passwd' OR 'password'
-            # Ensure both keys are present for compatibility
-            conn_config = self.config.copy()
-            if 'password' in conn_config and 'passwd' not in conn_config:
-                conn_config['passwd'] = conn_config['password']
-            
-            # Debug: Log connection attempt
-            debug_config = {k: ('***' if k in ['password', 'passwd'] else v) for k, v in conn_config.items()}
-            print(f"🔍 Connecting to DB: {debug_config}")
-            
-            self.connection = mysql.connector.connect(**conn_config)
+            self.connection = mysql.connector.connect(**self.config)
             self.cursor = self.connection.cursor(dictionary=True)
-            print(f"✅ Database connection successful!")
             return True
         except Error as e:
-            print(f"❌ Connection failed: {str(e)}")
             raise Exception(f"Database connection error: {str(e)}")
     
     def disconnect(self):

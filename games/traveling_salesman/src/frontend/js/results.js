@@ -1,6 +1,7 @@
 import { storage } from "./utils.js";
+import { saveResult } from "./api.js";
 
-export const initResults = () => {
+export const initResults = async () => {
     const data = storage.get("results");
     if (!data) {
         window.location.href = "index.html";
@@ -44,6 +45,39 @@ export const initResults = () => {
 
     if (fastestSummary)
         fastestSummary.textContent = `Fastest Algorithm: ${fastest.label} | Distance: ${fastest.result.distance.toFixed(1)} km | Time: ${(fastest.result.time_seconds * 1000).toFixed(2)} ms`;
+
+    // Save result to database
+    const playerName = storage.get("playerName") || "Anonymous";
+    console.log("🎮 Saving result for player:", playerName);
+    console.log("🎮 Data to save:", {
+        home_city: data.homeCity,
+        selected_cities: data.selectedCities,
+        player_distance: data.playerDistance,
+        score: data.playerScore
+    });
+    
+    try {
+        const savePayload = {
+            player_name: playerName,
+            home_city: data.homeCity,
+            selected_cities: data.selectedCities,
+            brute_force_distance: data.algorithms.brute_force.distance,
+            nearest_neighbor_distance: data.algorithms.nearest_neighbor.distance,
+            dp_distance: data.algorithms.dynamic_programming.distance,
+            player_distance: data.playerDistance,
+            score: data.playerScore,
+            algorithm_times: {
+                brute_force_time: data.algorithms.brute_force.time_seconds,
+                nearest_neighbor_time: data.algorithms.nearest_neighbor.time_seconds,
+                dp_time: data.algorithms.dynamic_programming.time_seconds
+            }
+        };
+        console.log("🎮 Full payload:", JSON.stringify(savePayload));
+        const result = await saveResult(savePayload);
+        console.log("✅ Result saved to database:", result);
+    } catch (err) {
+        console.error("❌ Failed to save result:", err);
+    }
 
     const optimalDistance = optimal.result.distance;
     const playerDistanceValue = data.playerDistance;

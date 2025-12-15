@@ -129,6 +129,7 @@ try:
     dinics_algorithm = solvers_module.dinics_algorithm
     create_random_graph = solvers_module.create_random_graph
     find_min_cut_nodes = solvers_module.find_min_cut_nodes
+    convert_cytoscape_to_capacity_matrix = solvers_module.convert_cytoscape_to_capacity_matrix
     SOURCE = solvers_module.SOURCE
     SINK = solvers_module.SINK
     
@@ -142,6 +143,11 @@ class MaxFlowInput(BaseModel):
     player_name: str
     max_flow_guess: int
 
+class GraphInput(BaseModel):
+    player_name: str
+    max_flow_guess: int
+    graph_elements: List
+
 @router.get("/status")
 async def get_status():
     """Get game status"""
@@ -150,6 +156,102 @@ async def get_status():
         "game": "Traffic Simulation",
         "algorithms_available": ALGORITHMS_AVAILABLE
     }
+
+@router.get("/generate-graph")
+async def generate_graph():
+    """Generate a new random graph for the game"""
+    if not ALGORITHMS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Algorithms not available")
+    
+    try:
+        # Generate a new random graph
+        graph_capacity, cytoscape_elements = create_random_graph()
+        
+        return {
+            'elements': cytoscape_elements,
+            'graph_capacity': graph_capacity
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating graph: {e}")
+
+@router.post("/run-simulation")
+async def run_simulation(data: GraphInput):
+    """Runs the Max Flow simulation using a pre-generated graph."""
+    
+    if not ALGORITHMS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Algorithms not available")
+    
+    player_name = data.player_name
+    max_flow_guess = data.max_flow_guess
+    graph_elements = data.graph_elements
+    
+    # Input Validation
+    if max_flow_guess < 1:
+        raise HTTPException(status_code=400, detail="Max Flow guess must be at least 1.")
+    
+    try:
+        # Convert Cytoscape elements to capacity matrix
+        graph_capacity = convert_cytoscape_to_capacity_matrix(graph_elements)
+        
+        # Run Edmonds-Karp Algorithm
+        start_time_ek = time.perf_counter_ns()
+        max_flow_ek, r_graph_ek = edmonds_karp(graph_capacity.copy(), SOURCE, SINK)
+        end_time_ek = time.perf_counter_ns()
+        runtime_ek_ns = (end_time_ek - start_time_ek)
+        
+        # Run Dinic's Algorithm
+        start_time_dinic = time.perf_counter_ns()
+        max_flow_dinic, r_graph_dinic = dinics_algorithm(graph_capacity.copy(), SOURCE, SINK)
+        end_time_dinic = time.perf_counter_ns()
+        runtime_dinic_ns = (end_time_dinic - start_time_dinic)
+        
+        # Find Min-Cut Nodes
+        s_side_nodes = find_min_cut_nodes(r_graph_ek, SOURCE)
+        
+        # Determine Win Status
+        win_status = "Win" if max_flow_guess == max_flow_ek else "Loss"
+        
+        # Try to save to database (optional)
+        try:
+            conn = get_db_connection()
+            try:
+                player_id = ensure_player(player_name, conn)
+                session_id = create_game_session(player_id, conn)
+                save_traffic_result(
+                    session_id=session_id,
+                    player_id=player_id,
+                    player_name=player_name,
+                    player_guess=max_flow_guess,
+                    actual_flow=max_flow_ek,
+                    win_status=win_status,
+                    runtime_ek_ns=runtime_ek_ns,
+                    max_flow_dinic=max_flow_dinic,
+                    runtime_dinic_ns=runtime_dinic_ns,
+                    graph_data=graph_capacity,
+                    conn=conn
+                )
+            finally:
+                conn.close()
+        except Exception as db_error:
+            print(f"Database save error (continuing without save): {db_error}")
+        
+        # Return results
+        runtime_ek_ms_display = runtime_ek_ns / 1_000_000.0
+        runtime_dinic_ms_display = runtime_dinic_ns / 1_000_000.0
+        
+        return {
+            'maxFlowEK': max_flow_ek,
+            'runtimeEK_ms': f"{runtime_ek_ms_display:.6f}",
+            'maxFlowDinic': max_flow_dinic,
+            'runtimeDinic_ms': f"{runtime_dinic_ms_display:.6f}",
+            'sSideNodes': s_side_nodes,
+            'winStatus': win_status,
+            'playerName': player_name,
+            'playerGuess': max_flow_guess
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during simulation: {e}")
 
 @router.post("/new-round")
 async def run_simulation_round(data: MaxFlowInput):
@@ -258,10 +360,12 @@ async def get_leaderboard():
             """)
             results = cursor.fetchall()
             
-            # Convert datetime to string
+            # Convert datetime to string and add runtime_ms for frontend
             for result in results:
                 if result['timestamp']:
                     result['timestamp'] = result['timestamp'].isoformat()
+                # Add runtime_ms for frontend compatibility
+                result['runtime_ms'] = result.get('runtime_ek_ms', 0)
             
             return results if results else []
         finally:
@@ -271,8 +375,8 @@ async def get_leaderboard():
         print(f"Leaderboard fetch error: {e}")
         # Return sample data when database is not available
         return [
-            {"player_name": "Sample Pilot", "runtime_ek_ms": 0.42, "runtime_dinic_ms": 0.35, "max_flow": 45, "timestamp": "2024-12-14T10:30:00"},
-            {"player_name": "Demo User", "runtime_ek_ms": 0.48, "runtime_dinic_ms": 0.40, "max_flow": 42, "timestamp": "2024-12-14T09:15:00"}
+            {"player_name": "Sample Pilot", "runtime_ms": 0.42, "runtime_ek_ms": 0.42, "runtime_dinic_ms": 0.35, "max_flow": 45, "timestamp": "2024-12-14T10:30:00"},
+            {"player_name": "Demo User", "runtime_ms": 0.48, "runtime_ek_ms": 0.48, "runtime_dinic_ms": 0.40, "max_flow": 42, "timestamp": "2024-12-14T09:15:00"}
         ]
 
 @router.get("/health")

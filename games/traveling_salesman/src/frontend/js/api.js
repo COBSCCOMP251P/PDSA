@@ -25,12 +25,16 @@ export const solveTSP = async (payload) => {
     if (!res.ok) throw new Error("Could not solve TSP.");
     return res.json();
 };
+
 export const saveResult = async (payload) => {
     const res = await fetch(`${API_BASE}/save-result`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Could not save result.");
+    if (!res.ok) {
+        console.error("Failed to save result to database");
+        return { message: "Failed to save" };
+    }
     return res.json();
 };

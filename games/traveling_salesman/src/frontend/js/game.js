@@ -1,5 +1,5 @@
 import { renderCityCheckboxes, toggleLoader, storage, renderMatrix, getSelectedCities, renderOrderControls } from "./utils.js";
-import { generateMatrix, calculatePlayerRoute, solveTSP, saveResult } from "./api.js";
+import { generateMatrix, calculatePlayerRoute, solveTSP } from "./api.js";
 
 export const initGame = () => {
     renderCityCheckboxes(true);
@@ -96,32 +96,6 @@ export const initGame = () => {
                 algorithms: solveData,
             };
             storage.set("results", payload);
-            
-            // Save to database
-            try {
-                const playerName = storage.get("playerName") || "Anonymous";
-                console.log("Attempting to save result to database...", playerName);
-                const saveResponse = await saveResult({
-                    player_name: playerName,
-                    home_city: homeCity,
-                    selected_cities: playerOrder,
-                    brute_force_distance: solveData.brute_force.distance,
-                    nearest_neighbor_distance: solveData.nearest_neighbor.distance,
-                    dp_distance: solveData.dynamic_programming.distance,
-                    player_distance: playerData.distance,
-                    score: playerScore,
-                    algorithm_times: {
-                        brute_force_time: solveData.brute_force.time_seconds,
-                        nearest_neighbor_time: solveData.nearest_neighbor.time_seconds,
-                        dp_time: solveData.dynamic_programming.time_seconds
-                    }
-                });
-                console.log("✅ Result saved to database successfully:", saveResponse);
-            } catch (saveErr) {
-                console.error("❌ Failed to save to database:", saveErr);
-                // Continue to results page even if save fails
-            }
-            
             status.textContent = `Your route: ${playerData.route.join(" → ")} (Distance: ${playerData.distance.toFixed(1)} km)`;
             window.location.href = "results.html";
         } catch (err) {

@@ -11,11 +11,11 @@ load_dotenv()
 
 # Database Configuration
 DATABASE_CONFIG = {
-    "host": os.getenv("DATABASE_HOST", "localhost"),
-    "port": int(os.getenv("DATABASE_PORT", 3306)),
-    "user": os.getenv("DATABASE_USER", "root"),
-    "password": os.getenv("DATABASE_PASSWORD", ""),
-    "database": os.getenv("DATABASE_NAME", "pdsa_games"),
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", 3306)),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", "pruthuvide"),
+    "database": os.getenv("DB_NAME", "pdsa_games"),
     "charset": "utf8mb4",
     "autocommit": True
 }

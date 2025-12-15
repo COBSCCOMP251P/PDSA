@@ -7,13 +7,10 @@ from pydantic import BaseModel, Field, validator
 from typing import List, Dict, Optional
 import sys
 import os
-from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from project root
-project_root = Path(__file__).parent.parent.parent.parent
-env_path = project_root / ".env"
-load_dotenv(dotenv_path=env_path)
+# Load environment variables
+load_dotenv()
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,30 +19,22 @@ from algorithms.game_logic import SnakeLadderBoard, validate_board_size, generat
 from algorithms.pathfinding import find_min_moves_bfs, find_min_moves_dfs, validate_answer, compare_algorithms
 from algorithms.database import SnakeLadderDB
 
-# Import shared configuration
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'shared', 'backend'))
-from config import DATABASE_CONFIG
-
-# Initialize router
-router = APIRouter(prefix="/snake-ladder", tags=["Snake and Ladder"])
-
-# Custom database configuration for Snake Ladder game
-# Direct configuration to ensure password is set
-SNAKE_LADDER_DB_CONFIG = {
-    "host": "localhost",
-    "port": 3306,
-    "user": "root",
-    "password": "pruthuvide",  # Direct password - matches MySQL setup
-    "database": "snake_game",  # Use dedicated snake_game database
+# Database configuration for Snake and Ladder (uses snake_game database)
+DATABASE_CONFIG = {
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", 3306)),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", "pruthuvide"),
+    "database": "snake_game",  # Snake Ladder specific database
     "charset": "utf8mb4",
     "autocommit": True
 }
 
-# Debug: Print to verify config
-print(f"🔍 Snake Ladder DB Config: host={SNAKE_LADDER_DB_CONFIG['host']}, user={SNAKE_LADDER_DB_CONFIG['user']}, db={SNAKE_LADDER_DB_CONFIG['database']}, password={'***' if SNAKE_LADDER_DB_CONFIG['password'] else 'EMPTY'}")
+# Initialize router
+router = APIRouter(prefix="/snake-ladder", tags=["Snake and Ladder"])
 
 # Initialize database handler
-db_handler = SnakeLadderDB(SNAKE_LADDER_DB_CONFIG)
+db_handler = SnakeLadderDB(DATABASE_CONFIG)
 
 # Global storage for active game sessions (in production, use Redis or similar)
 active_games: Dict[str, Dict] = {}
@@ -131,15 +120,11 @@ async def initialize_game(request: InitGameRequest):
     and generates answer choices for the player.
     """
     try:
-        print(f"🎮 Initializing game for {request.player_name}")
-        
         # Validate board size
         validate_board_size(request.board_size)
         
-        print(f"📊 Creating/getting player...")
         # Create or get player
         player_id = db_handler.create_or_get_player(request.player_name, request.email)
-        print(f"✅ Player ID: {player_id}")
         
         # Create game session
         session_id = db_handler.create_game_session(player_id)

@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # ==========================================
 DATABASE_URL = os.getenv(
     "TSP_DATABASE_URL",
-    "mysql+mysqlconnector://root:pruthuvide@localhost:3306/tsp_game"
+    "mysql+mysqlconnector://tspuser:StrongPass123!@localhost/tsp_game"
 )
 
 # ==========================================
