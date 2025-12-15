@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tower of Hanoi - Interactive Game & Algorithm Benchmark</title>
+    <title>Tower of Hanoi - Interactive Game</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
@@ -13,7 +13,7 @@
     <header class="header">
         <div class="container">
             <h1><i class="fas fa-layer-group"></i> Tower of Hanoi</h1>
-            <p>Interactive Game & Algorithm Benchmark</p>
+            <p>Interactive Game</p>
         </div>
     </header>
 
@@ -24,14 +24,11 @@
                 <button id="homeBtn" class="nav-btn active">
                     <i class="fas fa-home"></i> Home
                 </button>
-                <button id="gameBtn" class="nav-btn">
-                    <i class="fas fa-gamepad"></i> New Game
+                <button id="playBtn" class="nav-btn">
+                    <i class="fas fa-play"></i> Play
                 </button>
                 <button id="leaderboardBtn" class="nav-btn">
                     <i class="fas fa-trophy"></i> Leaderboard
-                </button>
-                <button id="benchmarkBtn" class="nav-btn">
-                    <i class="fas fa-chart-line"></i> Benchmark
                 </button>
                 <button id="aboutBtn" class="nav-btn">
                     <i class="fas fa-info-circle"></i> About
@@ -42,6 +39,97 @@
 
     <main class="main">
         <div class="container">
+            
+            <!-- Play Section (Interactive Gameplay) -->
+            <section id="playSection" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-play"></i> Interactive Tower of Hanoi Game</h2>
+                    <p class="section-subtitle">Choose your algorithm and play!</p>
+                </div>
+
+                <div class="play-setup">
+                    <div class="form-group">
+                        <label for="playPlayerName">Player Name:</label>
+                        <input type="text" id="playPlayerName" placeholder="Enter your name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="playDiskCount">Number of Disks:</label>
+                        <select id="playDiskCount">
+                            <option value="random" selected>Random (5-10)</option>
+                            <option value="5">5 Disks</option>
+                            <option value="6">6 Disks</option>
+                            <option value="7">7 Disks</option>
+                            <option value="8">8 Disks</option>
+                            <option value="9">9 Disks</option>
+                            <option value="10">10 Disks</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="playPegCount">Number of Pegs:</label>
+                        <select id="playPegCount">
+                            <option value="3" selected>3 Pegs (Classic)</option>
+                            <option value="4">4 Pegs (Advanced)</option>
+                        </select>
+                    </div>
+                    
+                    <button id="startPlayBtn" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Start Game
+                    </button>
+                </div>
+
+                <div id="playGameInfo" class="game-info-card" style="display: none;">
+                    <h3><i class="fas fa-info-circle"></i> Game Status</h3>
+                    <div class="game-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Moves Made:</span>
+                            <span id="movesMade" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Time Elapsed:</span>
+                            <span id="timeElapsed" class="stat-value">0s</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Optimal Moves:</span>
+                            <span id="optimalMoves" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Algorithm:</span>
+                            <span id="currentAlgorithm" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Game Board -->
+                <div id="visualGameBoard" class="visual-game-board" style="display: none;">
+                    <h3><i class="fas fa-eye"></i> Game Visualization</h3>
+                    <div id="towerDisplay" class="tower-display">
+                        <!-- Towers will be rendered here -->
+                    </div>
+                    <div class="visualization-controls">
+                        <button id="playAnimationBtn" class="btn btn-primary" style="display: none;">
+                            <i class="fas fa-play"></i> Play Animation
+                        </button>
+                        <button id="pauseAnimationBtn" class="btn btn-warning" style="display: none;">
+                            <i class="fas fa-pause"></i> Pause
+                        </button>
+                        <button id="resetVisualizationBtn" class="btn btn-secondary" style="display: none;">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                        <div class="animation-speed" style="display: none;" id="animationSpeedControl">
+                            <label for="animationSpeed">Animation Speed:</label>
+                            <input type="range" id="animationSpeed" min="50" max="2000" value="500" step="50">
+                            <span id="speedValue">500ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="playResultsDiv" class="results-card" style="display: none;">
+                    <h3><i class="fas fa-check-circle"></i> Game Completed!</h3>
+                    <div id="playResultsContent"></div>
+                </div>
+            </section>
             
             <!-- Home Section -->
             <section id="homeSection" class="section active">
@@ -59,11 +147,7 @@
                             <h3>Interactive Gameplay</h3>
                             <p>Solve puzzles with 5-10 disks using 3 or 4 pegs</p>
                         </div>
-                        <div class="feature-card">
-                            <i class="fas fa-stopwatch"></i>
-                            <h3>Algorithm Benchmarking</h3>
-                            <p>Compare your solutions with 4 different algorithms</p>
-                        </div>
+
                         <div class="feature-card">
                             <i class="fas fa-users"></i>
                             <h3>Global Leaderboard</h3>
@@ -158,15 +242,6 @@
                     <div id="validationResults" class="validation-results" style="display: none;">
                         <!-- Validation results will be displayed here -->
                     </div>
-
-                    <!-- Algorithm Comparison -->
-                    <div id="algorithmComparison" class="algorithm-comparison" style="display: none;">
-                        <h3><i class="fas fa-chart-bar"></i> Algorithm Benchmark Results</h3>
-                        <div id="algorithmResults" class="algorithm-results">
-                            <!-- Algorithm results will be displayed here -->
-                        </div>
-                        <canvas id="algorithmChart" width="400" height="200"></canvas>
-                    </div>
                 </div>
             </section>
 
@@ -179,76 +254,19 @@
                     </button>
                 </div>
                 
+                <div style="margin-bottom: 20px;">
+                    <label for="algorithmFilter" style="margin-right: 10px; font-weight: bold;">Filter by Algorithm:</label>
+                    <select id="algorithmFilter" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 14px;">
+                        <option value="all">All Algorithms</option>
+                        <option value="recursive_3peg">Recursive 3-Peg</option>
+                        <option value="iterative_3peg">Iterative 3-Peg</option>
+                        <option value="recursive_4peg">Recursive 4-Peg</option>
+                        <option value="iterative_4peg">Iterative 4-Peg</option>
+                    </select>
+                </div>
+                
                 <div id="leaderboardTable" class="table-container">
                     <!-- Leaderboard will be loaded here -->
-                </div>
-            </section>
-
-            <!-- Benchmark Section -->
-            <section id="benchmarkSection" class="section">
-                <div class="section-header">
-                    <h2><i class="fas fa-chart-line"></i> Algorithm Performance Benchmark</h2>
-                    <p class="section-subtitle">Compare algorithm execution times across 15 rounds</p>
-                </div>
-
-                <div class="benchmark-controls">
-                    <div class="control-group">
-                        <label for="benchmarkDiskCount">Number of Disks:</label>
-                        <select id="benchmarkDiskCount" class="form-select">
-                            <option value="5" selected>5 Disks</option>
-                            <option value="6">6 Disks</option>
-                            <option value="7">7 Disks</option>
-                            <option value="8">8 Disks</option>
-                            <option value="9">9 Disks</option>
-                            <option value="10">10 Disks</option>
-                        </select>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="benchmarkPegCount">Number of Pegs:</label>
-                        <select id="benchmarkPegCount" class="form-select">
-                            <option value="3" selected>3 Pegs</option>
-                            <option value="4">4 Pegs</option>
-                        </select>
-                    </div>
-
-                    <button id="runBenchmarkBtn" class="btn btn-primary" onclick="console.log('Inline onclick fired'); if(window.app) { console.log('App exists, calling function'); window.app.runBenchmark15Rounds(); } else { console.error('window.app not found!'); }">
-                        <i class="fas fa-play"></i> Run 15-Round Benchmark
-                    </button>
-
-                    <button id="downloadChartBtn" class="btn btn-secondary" style="display: none;">
-                        <i class="fas fa-download"></i> Download Chart
-                    </button>
-                </div>
-
-                <div class="benchmark-stats" id="benchmarkStats" style="display: none;">
-                    <div class="stat-card">
-                        <h4>Average Times</h4>
-                        <div id="avgTimesDisplay"></div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Move Counts</h4>
-                        <div id="moveCountsDisplay"></div>
-                    </div>
-                </div>
-
-                <div class="chart-container">
-                    <canvas id="benchmarkChart"></canvas>
-                </div>
-
-                <div id="benchmarkResults" class="benchmark-table-container" style="display: none;">
-                    <h3>Detailed Results</h3>
-                    <table class="benchmark-table">
-                        <thead>
-                            <tr>
-                                <th>Round</th>
-                                <th id="algoHeader1"></th>
-                                <th id="algoHeader2"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="benchmarkTableBody">
-                        </tbody>
-                    </table>
                 </div>
             </section>
 
@@ -275,13 +293,13 @@
                         <div class="about-card">
                             <h3><i class="fas fa-brain"></i> Algorithms</h3>
                             <p>
-                                This application implements and benchmarks four different solving algorithms:
+                                This application implements four different solving algorithms:
                             </p>
                             <ul>
                                 <li><strong>Recursive 3-Peg:</strong> Classic recursive solution (2^n - 1 moves)</li>
                                 <li><strong>Iterative 3-Peg:</strong> Stack-based iterative approach</li>
-                                <li><strong>Frame-Stewart 4-Peg:</strong> Optimal algorithm for 4 pegs</li>
-                                <li><strong>Dynamic Programming 4-Peg:</strong> DP approach with memoization</li>
+                                <li><strong>Recursive 4-Peg:</strong> Optimal recursive algorithm for 4 pegs</li>
+                                <li><strong>Iterative 4-Peg:</strong> Stack-based approach for 4 pegs</li>
                             </ul>
                         </div>
                         
@@ -304,8 +322,7 @@
                             <ul>
                                 <li>Recursive algorithms and data structures</li>
                                 <li>Algorithm complexity analysis</li>
-                                <li>Dynamic programming optimization</li>
-                                <li>Performance benchmarking and comparison</li>
+                                <li>Iterative vs recursive approaches</li>
                             </ul>
                         </div>
                     </div>

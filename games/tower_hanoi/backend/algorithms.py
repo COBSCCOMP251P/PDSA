@@ -144,11 +144,11 @@ class IterativeThreePegAlgorithm(TowerOfHanoiAlgorithm):
         return move_count
 
 
-class FrameStewartAlgorithm(TowerOfHanoiAlgorithm):
-    """Frame-Stewart algorithm for 4-peg Tower of Hanoi"""
+class RecursiveFourPegAlgorithm(TowerOfHanoiAlgorithm):
+    """Recursive Frame-Stewart algorithm for 4-peg Tower of Hanoi"""
     
     def __init__(self):
-        super().__init__("Frame-Stewart 4-Peg")
+        super().__init__("Recursive 4-Peg")
         self.memo = {}  # Memoization for optimal k values
     
     def _solve(self, n: int, source: str, destination: str, auxiliaries: List[str]) -> int:
@@ -331,6 +331,101 @@ class DynamicProgrammingFourPegAlgorithm(TowerOfHanoiAlgorithm):
         self._generate_three_peg_sequence(n - 1, auxiliary, destination, source)
 
 
+class IterativeFourPegAlgorithm(TowerOfHanoiAlgorithm):
+    """Iterative algorithm for 4-peg Tower of Hanoi using stack-based Frame-Stewart"""
+    
+    def __init__(self):
+        super().__init__("Iterative 4-Peg")
+        self.optimal_k_cache = {}
+    
+    def _solve(self, n: int, source: str, destination: str, auxiliaries: List[str]) -> int:
+        """
+        Iterative Frame-Stewart algorithm using explicit stack
+        More memory efficient for larger problem sizes
+        """
+        if n == 0:
+            return 0
+        if n == 1:
+            self._add_move(source, destination)
+            return 1
+        
+        # Find optimal k value first
+        optimal_k = self._find_optimal_k(n)
+        
+        # Use stack to simulate the recursive Frame-Stewart
+        # Stack items: (n_disks, src, dest, aux_list, stage)
+        # stage: 0=move k to aux1, 1=move n-k to dest, 2=move k to dest
+        stack = [(n, source, destination, auxiliaries, 0, optimal_k)]
+        move_count = 0
+        
+        while stack:
+            n_disks, src, dest, aux_list, stage, k = stack.pop()
+            
+            if n_disks == 1:
+                self._add_move(src, dest)
+                move_count += 1
+                continue
+            
+            aux1 = aux_list[0] if len(aux_list) > 0 else 'B'
+            aux2 = aux_list[1] if len(aux_list) > 1 else 'C'
+            
+            if stage == 0:
+                # Find optimal k for this n_disks
+                k = self._find_optimal_k(n_disks)
+                
+                # Push operations in reverse order
+                # Stage 2: Move k disks from aux1 to dest
+                stack.append((k, aux1, dest, [src, aux2], 0, k))
+                
+                # Stage 1: Move n-k disks from src to dest using 3-peg
+                if n_disks - k > 0:
+                    stack.append((n_disks - k, src, dest, [aux2], 0, k))
+                
+                # Stage 0: Move k disks from src to aux1
+                stack.append((k, src, aux1, [dest, aux2], 0, k))
+        
+        return move_count
+    
+    def _find_optimal_k(self, n: int) -> int:
+        """Find the optimal split point k for Frame-Stewart algorithm"""
+        if n <= 1:
+            return 1
+        if n in self.optimal_k_cache:
+            return self.optimal_k_cache[n]
+        
+        min_moves = float('inf')
+        best_k = 1
+        
+        for k in range(1, n):
+            # Calculate moves without actually performing them
+            moves_top = self._calculate_moves(k)
+            moves_bottom = (2 ** (n - k)) - 1  # 3-peg moves
+            total_moves = 2 * moves_top + moves_bottom
+            
+            if total_moves < min_moves:
+                min_moves = total_moves
+                best_k = k
+        
+        self.optimal_k_cache[n] = best_k
+        return best_k
+    
+    def _calculate_moves(self, n: int) -> int:
+        """Calculate minimum moves for n disks (4-peg)"""
+        if n == 0:
+            return 0
+        if n == 1:
+            return 1
+        if n == 2:
+            return 3
+        
+        min_moves = float('inf')
+        for k in range(1, n):
+            moves = 2 * self._calculate_moves(k) + (2 ** (n - k) - 1)
+            min_moves = min(min_moves, moves)
+        
+        return min_moves
+
+
 class AlgorithmRunner:
     """Manages and runs all Tower of Hanoi algorithms"""
     
@@ -341,8 +436,8 @@ class AlgorithmRunner:
         ]
         
         self.four_peg_algorithms = [
-            FrameStewartAlgorithm(),
-            DynamicProgrammingFourPegAlgorithm()
+            RecursiveFourPegAlgorithm(),
+            IterativeFourPegAlgorithm()
         ]
     
     def run_all_algorithms(self, n: int, peg_count: int, source: str = 'A', destination: str = 'D') -> List[AlgorithmResult]:
