@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Stats - Eight Queens Puzzle</title>
+    <link rel="stylesheet" href="styles.css?v=20">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+        }
+
+        .stats-page {
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Header */
+        .stats-header {
+            max-width: 900px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(180deg, #475569 0%, #334155 100%);
+            border: none;
+            color: #ffffff;
+            padding: 14px 32px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 5px 0 #1e293b, 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #1e293b, 0 3px 10px rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+        }
+
+        .back-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #1e293b, 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-title {
+            text-align: center;
+        }
+
+        .header-title h1 {
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .header-title h1 .crown {
+            color: #fbbf24;
+            font-size: 1.5rem;
+        }
+
+        .player-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: #c4b5fd;
+        }
+
+        .placeholder-right {
+            width: 120px;
+        }
+
+        /* Main Content */
+        .stats-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Player Overview Card */
+        .overview-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .overview-item {
+            text-align: center;
+            padding: 20px 15px;
+            background: rgba(0,0,0,0.25);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .overview-item .value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #22c55e, #4ade80);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .overview-item.solutions .value {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .overview-item.score .value {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .overview-item.time .value {
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2rem;
+        }
+
+        .overview-item .label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Two Column Layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        /* Cards */
+        .stat-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 25px;
+        }
+
+        .stat-card h3 {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-card h3 .icon {
+            font-size: 1.3rem;
+        }
+
+        /* Global Progress */
+        .progress-section {
+            margin-bottom: 15px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .progress-header .count {
+            font-weight: 700;
+            color: #22c55e;
+        }
+
+        .progress-bar {
+            height: 14px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 7px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            border-radius: 7px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-note {
+            text-align: center;
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 10px;
+            color: #86efac;
+            font-size: 0.9rem;
+        }
+
+        /* Solutions List */
+        .solutions-list {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .solution-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: rgba(0,0,0,0.25);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s;
+        }
+
+        .solution-item:hover {
+            background: rgba(0,0,0,0.35);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .solution-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .solution-number {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.95rem;
+        }
+
+        .solution-array {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #7dd3fc;
+        }
+
+        .solution-date {
+            font-size: 0.8rem;
+            color: #64748b;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Game History */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th {
+            background: rgba(0,0,0,0.3);
+            color: #94a3b8;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .history-table th:first-child {
+            border-radius: 10px 0 0 10px;
+        }
+
+        .history-table th:last-child {
+            border-radius: 0 10px 10px 0;
+        }
+
+        .history-table td {
+            padding: 14px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .history-table tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge.completed {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+        }
+
+        .status-badge.incomplete {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .difficulty-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .difficulty-badge.easy {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+        }
+
+        .difficulty-badge.medium {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .difficulty-badge.hard {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        /* Scrollbar */
+        .solutions-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .solutions-list::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+        }
+
+        .solutions-list::-webkit-scrollbar-thumb {
+            background: rgba(125, 211, 252, 0.3);
+            border-radius: 3px;
+        }
+
+        .solutions-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(125, 211, 252, 0.5);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .loading .spinner {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .overview-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .placeholder-right {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .overview-item .value {
+                font-size: 2rem;
+            }
+            
+            .solution-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stats-page">
+        <!-- Header -->
+        <div class="stats-header">
+            <a href="#" class="back-btn" onclick="goBackToDifficulty(); return false;">
+                ← Back to Game
+            </a>
+            <div class="header-title">
+                <h1><span class="crown">♛</span> My Statistics</h1>
+                <div class="player-badge">
+                    👤 <span id="playerNameDisplay">Player</span>
+                </div>
+            </div>
+            <div class="placeholder-right"></div>
+        </div>
+
+        <div class="stats-container">
+            <!-- Player Overview -->
+            <div class="overview-card">
+                <div class="overview-grid">
+                    <div class="overview-item">
+                        <div class="value" id="totalGamesPlayed">0</div>
+                        <div class="label">Games Played</div>
+                    </div>
+                    <div class="overview-item solutions">
+                        <div class="value" id="solutionsFound">0</div>
+                        <div class="label">Solutions Found</div>
+                    </div>
+                    <div class="overview-item score">
+                        <div class="value" id="highestScore">0</div>
+                        <div class="label">Highest Score</div>
+                    </div>
+                    <div class="overview-item time">
+                        <div class="value" id="avgTime">--</div>
+                        <div class="label">Avg. Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Column Section -->
+            <div class="two-column">
+                <!-- Global Progress -->
+                <div class="stat-card">
+                    <h3><span class="icon">🌍</span> Global Discovery Progress</h3>
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <span>Community Solutions</span>
+                            <span class="count"><span id="globalFound">0</span> / 92</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-note" id="progressNote">
+                        🎯 <span id="remainingSolutions">92</span> unique solutions waiting to be discovered!
+                    </div>
+                </div>
+
+                <!-- Your Solutions -->
+                <div class="stat-card">
+                    <h3><span class="icon">✨</span> Your Discovered Solutions</h3>
+                    <div id="solutionsList" class="solutions-list">
+                        <div class="loading">
+                            <div class="spinner">⟳</div>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game History -->
+            <div class="stat-card">
+                <h3><span class="icon">📋</span> Recent Game History</h3>
+                <div style="overflow-x: auto;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Game #</th>
+                                <th>Difficulty</th>
+                                <th>Score</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gameHistoryBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #64748b; padding: 30px;">
+                                    Loading game history...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/eight-queens-game';
+        let playerName = '';
+        let playerId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            playerName = localStorage.getItem('playerName') || 'Guest';
+            playerId = localStorage.getItem('playerId');
+            
+            // Show player name - if empty, show Guest
+            const displayName = playerName && playerName !== 'Player' ? playerName : 'Guest';
+            document.getElementById('playerNameDisplay').textContent = displayName;
+            
+            loadAllStats();
+        });
+
+        function goBackToDifficulty() {
+            // Set flag to show difficulty screen
+            localStorage.setItem('returnToDifficulty', 'true');
+            window.location.href = 'index.html';
+        }
+
+        async function loadAllStats() {
+            await Promise.all([
+                loadPlayerStats(),
+                loadGlobalProgress(),
+                loadPlayerSolutions(),
+                loadGameHistory()
+            ]);
+        }
+
+        async function loadPlayerStats() {
+            try {
+                const response = await fetch(`${API_BASE}/players/${encodeURIComponent(playerName)}/profile`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.data) {
+                        document.getElementById('totalGamesPlayed').textContent = result.data.total_games_played || 0;
+                        document.getElementById('solutionsFound').textContent = result.data.solutions_found || 0;
+                        document.getElementById('highestScore').textContent = result.data.highest_score || 0;
+                        
+                        if (result.data.avg_completion_time) {
+                            const avgSec = Math.round(result.data.avg_completion_time);
+                            if (avgSec >= 60) {
+                                const min = Math.floor(avgSec / 60);
+                                const sec = avgSec % 60;
+                                document.getElementById('avgTime').textContent = `${min}m ${sec}s`;
+                            } else {
+                                document.getElementById('avgTime').textContent = `${avgSec}s`;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading player stats:', error);
+            }
+        }
+
+        async function loadGlobalProgress() {
+            try {
+                const response = await fetch(`${API_BASE}/solutions/progress`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.data) {
+                        const found = result.data.solutions_found || 0;
+                        const total = result.data.total_solutions || 92;
+                        const remaining = total - found;
+                        const percent = Math.round((found / total) * 100);
+                        
+                        document.getElementById('globalFound').textContent = found;
+                        document.getElementById('remainingSolutions').textContent = remaining;
+                        document.getElementById('progressFill').style.width = percent + '%';
+                        
+                        if (remaining === 0) {
+                            document.getElementById('progressNote').innerHTML = '🎉 All 92 solutions discovered! Amazing!';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading global progress:', error);
+            }
+        }
+
+        async function loadPlayerSolutions() {
+            const container = document.getElementById('solutionsList');
+            
+            try {
+                const response = await fetch(`${API_BASE}/players/${encodeURIComponent(playerName)}/solutions`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.data && result.data.solutions && result.data.solutions.length > 0) {
+                        container.innerHTML = result.data.solutions.map((sol, index) => `
+                            <div class="solution-item">
+                                <div class="solution-info">
+                                    <span class="solution-number">Solution #${sol.solution_number || (index + 1)}</span>
+                                    <span class="solution-array">[${sol.solution_array || sol.solution || 'N/A'}]</span>
+                                </div>
+                                <span class="solution-date">${sol.found_at ? new Date(sol.found_at).toLocaleDateString() : 'Recently'}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        showEmptySolutions();
+                    }
+                } else {
+                    showEmptySolutions();
+                }
+            } catch (error) {
+                console.error('Error loading solutions:', error);
+                showEmptySolutions();
+            }
+        }
+
+        function showEmptySolutions() {
+            document.getElementById('solutionsList').innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">🔍</div>
+                    <p>No solutions discovered yet!<br>Play the game to find unique solutions.</p>
+                </div>
+            `;
+        }
+
+        async function loadGameHistory() {
+            const tbody = document.getElementById('gameHistoryBody');
+            
+            try {
+                const response = await fetch(`${API_BASE}/players/${encodeURIComponent(playerName)}/games`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.data && result.data.games && result.data.games.length > 0) {
+                        const games = result.data.games.slice(0, 10); // Last 10 games
+                        tbody.innerHTML = games.map((game, index) => {
+                            const difficulty = game.difficulty || 'Medium';
+                            const diffClass = difficulty.toLowerCase();
+                            const isWin = game.result === 'win';
+                            
+                            return `
+                                <tr>
+                                    <td>#${games.length - index}</td>
+                                    <td><span class="difficulty-badge ${diffClass}">${difficulty}</span></td>
+                                    <td>${game.score || 0}</td>
+                                    <td>${formatTime(game.time_taken || game.completion_time || 0)}</td>
+                                    <td>
+                                        <span class="status-badge ${isWin ? 'completed' : 'incomplete'}">
+                                            ${isWin ? '✓ Won' : '✗ Lost'}
+                                        </span>
+                                    </td>
+                                    <td>${game.played_at ? new Date(game.played_at).toLocaleDateString() : 'N/A'}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    } else {
+                        showEmptyHistory();
+                    }
+                } else {
+                    showEmptyHistory();
+                }
+            } catch (error) {
+                console.error('Error loading game history:', error);
+                showEmptyHistory();
+            }
+        }
+
+        function showEmptyHistory() {
+            document.getElementById('gameHistoryBody').innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #64748b; padding: 40px;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">🎮</div>
+                        No games played yet. Start playing to see your history!
+                    </td>
+                </tr>
+            `;
+        }
+
+        function formatTime(seconds) {
+            if (!seconds) return '--';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.round(seconds % 60);
+            return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        }
+    </script>
+</body>
+</html>

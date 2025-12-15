@@ -1,1 +1,0 @@
-# Eight Queens Algorithms Package

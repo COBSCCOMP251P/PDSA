@@ -43,6 +43,9 @@ class DatabaseConnection:
             
             if query.strip().upper().startswith('SELECT'):
                 result = cursor.fetchall()
+            elif query.strip().upper().startswith('INSERT'):
+                self.connection.commit()
+                result = cursor.lastrowid  # Return last inserted ID for INSERT queries
             else:
                 self.connection.commit()
                 result = cursor.rowcount

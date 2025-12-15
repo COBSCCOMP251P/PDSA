@@ -86,7 +86,17 @@ Desktop.ini
 shared/frontend/css/tailwind.css
 
 # Documentation files (keep local only)
-pdsa.md
-PROJECT_PLAN.md
-PROJECT_STRUCTURE.md
+docs/
 .specstory/
+
+# Startup scripts (local convenience scripts)
+start.sh
+start.ps1
+run.ps1
+run.bat
+run.ps2
+
+# Test output and temporary test files
+test_*.log
+test_output/
+*.test.db

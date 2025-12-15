@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualization Test</title>
+</head>
+<body>
+    <h1>Test Visualization Button</h1>
+    <button id="showVisualizationBtn">🎬 Watch Algorithm Animation</button>
+    
+    <script>
+        // Test if button click works
+        const btn = document.getElementById('showVisualizationBtn');
+        console.log('Button found:', btn);
+        
+        btn.onclick = function() {
+            alert('Button clicked!');
+            console.log('Button was clicked successfully');
+        };
+        
+        // Also test with addEventListener
+        btn.addEventListener('click', function() {
+            console.log('addEventListener also works');
+        });
+    </script>
+</body>
+</html>

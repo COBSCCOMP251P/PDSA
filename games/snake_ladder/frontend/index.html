@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake and Ladder Game - PDSA</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐍 Snake and Ladder Game 🪜</h1>
+            <p class="subtitle">Find the Minimum Number of Dice Throws</p>
+        </header>
+
+        <!-- Game Setup Section -->
+        <section id="setupSection" class="section">
+            <div class="card">
+                <h2>Start New Game</h2>
+                <form id="setupForm">
+                    <div class="form-group">
+                        <label for="playerName">Player Name:</label>
+                        <input type="text" id="playerName" name="playerName" required 
+                               placeholder="Enter your name" minlength="1" maxlength="100">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email (Optional):</label>
+                        <input type="email" id="email" name="email" 
+                               placeholder="Enter your email (optional)" maxlength="150">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="boardSize">Board Size (N×N):</label>
+                        <input type="number" id="boardSize" name="boardSize" required 
+                               min="6" max="12" value="8">
+                        <small>Choose between 6 and 12</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Start Game</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Loading Section -->
+        <section id="loadingSection" class="section hidden">
+            <div class="card">
+                <div class="loader"></div>
+                <p>Generating board and calculating optimal path...</p>
+            </div>
+        </section>
+
+        <!-- Game Section -->
+        <section id="gameSection" class="section hidden">
+            <div class="card">
+                <h2>Game Board</h2>
+                <div id="boardInfo" class="board-info"></div>
+                
+                <!-- Board Visualization -->
+                <div id="boardContainer" class="board-container"></div>
+                
+                <!-- Board Legend -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-color ladder"></span>
+                        <span>Ladder (Go Up)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color snake"></span>
+                        <span>Snake (Go Down)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color start"></span>
+                        <span>Start</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color end"></span>
+                        <span>End</span>
+                    </div>
+                </div>
+                
+                <!-- Answer Form -->
+                <div class="answer-section">
+                    <h3>What is the minimum number of dice throws required?</h3>
+                    <form id="answerForm">
+                        <div class="answer-choices" id="answerChoices">
+                            <!-- Radio buttons will be generated here -->
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Answer</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Path Visualization Section -->
+        <section id="pathVisualizationSection" class="section hidden">
+            <div class="card">
+                <h2 id="visualizationTitle">🎲 Algorithm Path Visualization</h2>
+                <div id="pathInfo" class="path-info">
+                    <p>Watch how the algorithm finds the shortest path!</p>
+                </div>
+                
+                <!-- Animation Control Panel -->
+                <div class="animation-control-panel">
+                    <!-- Dice Display -->
+                    <div id="diceDisplay" class="dice-display">
+                        <div class="dice-container">
+                            <div id="diceValue" class="dice">?</div>
+                            <p id="diceLabel">Dice Roll</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Control Buttons -->
+                    <div class="control-buttons">
+                        <button id="startAnimationBtn" class="btn btn-primary">▶️ Start</button>
+                        <button id="pauseAnimationBtn" class="btn btn-secondary" disabled>⏸️ Pause</button>
+                        <button id="resetAnimationBtn" class="btn btn-secondary">🔄 Reset</button>
+                        <button id="closePathBtn" class="btn btn-secondary">✖️ Close</button>
+                    </div>
+                </div>
+                
+                <!-- Movement Info -->
+                <div id="movementInfo" class="movement-info">
+                    <div class="info-row">
+                        <span class="info-label">Current Position:</span>
+                        <span id="currentPos" class="info-value">1</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Next Position:</span>
+                        <span id="nextPos" class="info-value">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Throws Count:</span>
+                        <span id="throwsCount" class="info-value">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span id="moveStatus" class="info-value">Ready</span>
+                    </div>
+                </div>
+                
+                <!-- Board Visualization with Animation -->
+                <div id="animatedBoardContainer" class="board-container"></div>
+            </div>
+        </section>
+
+        <!-- Result Section -->
+        <section id="resultSection" class="section hidden">
+            <div class="card result-card">
+                <div id="resultIcon" class="result-icon"></div>
+                <h2 id="resultTitle"></h2>
+                <p id="resultMessage" class="result-message"></p>
+                
+                <div class="result-details">
+                    <h3>Game Details</h3>
+                    <div id="resultDetails"></div>
+                </div>
+                
+                <div class="algorithm-comparison">
+                    <h3>Algorithm Performance</h3>
+                    <div id="algorithmDetails"></div>
+                </div>
+                
+                <div class="player-stats" id="playerStatsSection">
+                    <h3>Your Statistics</h3>
+                    <div id="playerStats"></div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="showBFSVisualizationBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🎬 Watch BFS Algorithm</button>
+                    <button id="showDFSVisualizationBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">🎬 Watch DFS Algorithm</button>
+                    <button id="playAgainBtn" class="btn btn-primary">Play Again</button>
+                    <button id="viewLeaderboardBtn" class="btn btn-secondary">View Leaderboard</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaderboard Section -->
+        <section id="leaderboardSection" class="section hidden">
+            <div class="card">
+                <h2>🏆 Leaderboard</h2>
+                <div id="leaderboardContainer"></div>
+                <button id="backToGameBtn" class="btn btn-secondary">Back to Game</button>
+            </div>
+        </section>
+
+        <!-- Error Section -->
+        <section id="errorSection" class="section hidden">
+            <div class="card error-card">
+                <h2>❌ Error</h2>
+                <p id="errorMessage"></p>
+                <button id="retryBtn" class="btn btn-primary">Try Again</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

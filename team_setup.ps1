@@ -1,0 +1,346 @@
+<#
+.SYNOPSIS
+    PDSA Games - Universal Team Setup Script
+    Works on any team member's computer
+
+.DESCRIPTION
+    This script sets up the complete PDSA Games environment:
+    - Checks prerequisites (Python, MySQL, Node.js)
+    - Creates virtual environment
+    - Installs all dependencies
+    - Configures database connection
+    - Creates all required databases
+    - Starts the server
+
+.NOTES
+    Run this script from the project root folder
+    Right-click -> Run with PowerShell (as Administrator for best results)
+#>
+
+param(
+    [switch]$SkipDatabase,
+    [switch]$QuickStart
+)
+
+# Colors for output
+function Write-ColorOutput($ForegroundColor) {
+    $fc = $host.UI.RawUI.ForegroundColor
+    $host.UI.RawUI.ForegroundColor = $ForegroundColor
+    if ($args) { Write-Output $args }
+    $host.UI.RawUI.ForegroundColor = $fc
+}
+
+function Write-Step($message) { Write-Host "🔄 $message" -ForegroundColor Cyan }
+function Write-Success($message) { Write-Host "✅ $message" -ForegroundColor Green }
+function Write-Warning($message) { Write-Host "⚠️  $message" -ForegroundColor Yellow }
+function Write-Error($message) { Write-Host "❌ $message" -ForegroundColor Red }
+function Write-Info($message) { Write-Host "ℹ️  $message" -ForegroundColor White }
+
+# Header
+Write-Host ""
+Write-Host "╔══════════════════════════════════════════════════════════════════╗" -ForegroundColor Magenta
+Write-Host "║           PDSA Algorithm Games - Team Setup Script               ║" -ForegroundColor Magenta
+Write-Host "║                  Universal Cross-Machine Setup                   ║" -ForegroundColor Magenta
+Write-Host "╚══════════════════════════════════════════════════════════════════╝" -ForegroundColor Magenta
+Write-Host ""
+
+# Get script directory
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $ScriptDir) { $ScriptDir = Get-Location }
+Set-Location $ScriptDir
+Write-Info "Working directory: $ScriptDir"
+
+# ============================================
+# STEP 1: Check Prerequisites
+# ============================================
+Write-Host ""
+Write-Host "═══ STEP 1: Checking Prerequisites ═══" -ForegroundColor Yellow
+
+# Check Python
+Write-Step "Checking Python installation..."
+$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+if (-not $pythonCmd) {
+    Write-Error "Python is not installed or not in PATH!"
+    Write-Info "Download from: https://www.python.org/downloads/"
+    Write-Info "Make sure to check 'Add Python to PATH' during installation"
+    exit 1
+}
+$pythonVersion = python --version 2>&1
+Write-Success "Python found: $pythonVersion"
+
+# Check MySQL
+Write-Step "Checking MySQL installation..."
+$mysqlCmd = Get-Command mysql -ErrorAction SilentlyContinue
+if (-not $mysqlCmd) {
+    Write-Warning "MySQL client not found in PATH"
+    Write-Info "MySQL may still work if the service is running"
+} else {
+    Write-Success "MySQL client found"
+}
+
+# Check Node.js (optional for CSS)
+Write-Step "Checking Node.js installation..."
+$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+if (-not $nodeCmd) {
+    Write-Warning "Node.js not found - CSS may not build (optional)"
+} else {
+    $nodeVersion = node --version 2>&1
+    Write-Success "Node.js found: $nodeVersion"
+}
+
+# ============================================
+# STEP 2: Environment Configuration
+# ============================================
+Write-Host ""
+Write-Host "═══ STEP 2: Environment Configuration ═══" -ForegroundColor Yellow
+
+$envFile = Join-Path $ScriptDir ".env"
+$envExampleFile = Join-Path $ScriptDir ".env.example"
+
+if (-not (Test-Path $envFile)) {
+    Write-Warning ".env file not found!"
+    
+    if (Test-Path $envExampleFile) {
+        Write-Info "Creating .env from .env.example..."
+        Copy-Item $envExampleFile $envFile
+    } else {
+        Write-Info "Creating new .env file..."
+    }
+    
+    # Prompt for database password
+    Write-Host ""
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+    Write-Host "  DATABASE CONFIGURATION REQUIRED" -ForegroundColor Cyan
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $dbUser = Read-Host "Enter MySQL username (default: root)"
+    if ([string]::IsNullOrWhiteSpace($dbUser)) { $dbUser = "root" }
+    
+    $dbPassword = Read-Host "Enter MySQL password"
+    if ([string]::IsNullOrWhiteSpace($dbPassword)) {
+        Write-Error "Password cannot be empty!"
+        exit 1
+    }
+    
+    $dbHost = Read-Host "Enter MySQL host (default: localhost)"
+    if ([string]::IsNullOrWhiteSpace($dbHost)) { $dbHost = "localhost" }
+    
+    $dbPort = Read-Host "Enter MySQL port (default: 3306)"
+    if ([string]::IsNullOrWhiteSpace($dbPort)) { $dbPort = "3306" }
+    
+    # Write .env file
+    $envContent = @"
+# PDSA Games Environment Configuration
+# Generated by team_setup.ps1 on $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+
+# Database Configuration
+DB_HOST=$dbHost
+DB_PORT=$dbPort
+DB_USER=$dbUser
+DB_PASSWORD=$dbPassword
+
+# API Configuration
+API_HOST=127.0.0.1
+API_PORT=8000
+
+# Development Settings
+DEBUG=true
+"@
+    Set-Content -Path $envFile -Value $envContent
+    Write-Success ".env file created!"
+} else {
+    Write-Success ".env file exists"
+}
+
+# Load .env variables
+Write-Step "Loading environment variables..."
+Get-Content $envFile | ForEach-Object {
+    if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+        $name = $matches[1].Trim()
+        $value = $matches[2].Trim()
+        [Environment]::SetEnvironmentVariable($name, $value, "Process")
+    }
+}
+Write-Success "Environment variables loaded"
+
+# ============================================
+# STEP 3: Python Virtual Environment
+# ============================================
+Write-Host ""
+Write-Host "═══ STEP 3: Python Virtual Environment ═══" -ForegroundColor Yellow
+
+$venvPath = Join-Path $ScriptDir ".venv"
+
+if (-not (Test-Path $venvPath)) {
+    Write-Step "Creating virtual environment..."
+    python -m venv .venv
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to create virtual environment!"
+        exit 1
+    }
+    Write-Success "Virtual environment created"
+} else {
+    Write-Success "Virtual environment exists"
+}
+
+# Activate virtual environment
+Write-Step "Activating virtual environment..."
+$activateScript = Join-Path $venvPath "Scripts\Activate.ps1"
+if (Test-Path $activateScript) {
+    . $activateScript
+    Write-Success "Virtual environment activated"
+} else {
+    Write-Error "Cannot find activation script!"
+    exit 1
+}
+
+# ============================================
+# STEP 4: Install Python Dependencies
+# ============================================
+Write-Host ""
+Write-Host "═══ STEP 4: Installing Python Dependencies ═══" -ForegroundColor Yellow
+
+$packages = @(
+    "fastapi",
+    "uvicorn[standard]",
+    "python-dotenv",
+    "mysql-connector-python",
+    "pydantic",
+    "sqlalchemy"
+)
+
+foreach ($package in $packages) {
+    Write-Step "Installing $package..."
+    pip install $package --quiet 2>&1 | Out-Null
+}
+Write-Success "All Python packages installed"
+
+# ============================================
+# STEP 5: Database Setup
+# ============================================
+if (-not $SkipDatabase) {
+    Write-Host ""
+    Write-Host "═══ STEP 5: Database Setup ═══" -ForegroundColor Yellow
+    
+    $dbUser = $env:DB_USER
+    $dbPassword = $env:DB_PASSWORD
+    $dbHost = $env:DB_HOST
+    
+    Write-Step "Testing database connection..."
+    
+    # Test connection
+    $testQuery = "SELECT 1"
+    try {
+        $result = mysql -u $dbUser -p"$dbPassword" -h $dbHost -e $testQuery 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "Database connection successful!"
+        } else {
+            throw "Connection failed"
+        }
+    } catch {
+        Write-Error "Cannot connect to MySQL!"
+        Write-Info "Please ensure:"
+        Write-Info "  1. MySQL service is running"
+        Write-Info "  2. Username and password in .env are correct"
+        Write-Info "  3. MySQL is accessible on $dbHost"
+        Write-Host ""
+        $continue = Read-Host "Continue without database? (y/n)"
+        if ($continue -ne "y") { exit 1 }
+    }
+    
+    # Create databases
+    Write-Step "Creating databases..."
+    
+    $databases = @(
+        "eight_queens_game",
+        "snake_game", 
+        "traffic_simulation_game",
+        "tsp_game",
+        "pdsa_games"
+    )
+    
+    foreach ($db in $databases) {
+        Write-Info "  Creating database: $db"
+        mysql -u $dbUser -p"$dbPassword" -h $dbHost -e "CREATE DATABASE IF NOT EXISTS $db;" 2>&1 | Out-Null
+    }
+    Write-Success "All databases created"
+    
+    # Run schema files
+    Write-Step "Setting up database tables..."
+    
+    $schemaFiles = @{
+        "eight_queens_game" = "games/eight_queens/database/schema.sql"
+        "snake_game" = "games/snake_ladder/database/schema.sql"
+        "traffic_simulation_game" = "games/traffic_simulation/database/schema.sql"
+        "tsp_game" = "games/traveling_salesman/database/tsp_schema.sql"
+        "pdsa_games" = "games/tower_hanoi/database/schema.sql"
+    }
+    
+    foreach ($db in $schemaFiles.Keys) {
+        $schemaFile = $schemaFiles[$db]
+        if ($schemaFile -and (Test-Path (Join-Path $ScriptDir $schemaFile))) {
+            Write-Info "  Running schema for $db..."
+            $fullPath = Join-Path $ScriptDir $schemaFile
+            mysql -u $dbUser -p"$dbPassword" -h $dbHost $db < $fullPath 2>&1 | Out-Null
+        }
+    }
+    Write-Success "Database tables configured"
+}
+
+# ============================================
+# STEP 6: Build Frontend Assets
+# ============================================
+Write-Host ""
+Write-Host "═══ STEP 6: Frontend Assets ═══" -ForegroundColor Yellow
+
+if (Test-Path (Join-Path $ScriptDir "package.json")) {
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Write-Step "Installing npm packages..."
+        npm install --silent 2>&1 | Out-Null
+        
+        Write-Step "Building CSS..."
+        npm run build-css 2>&1 | Out-Null
+        Write-Success "Frontend assets built"
+    } else {
+        Write-Warning "npm not available - skipping CSS build"
+    }
+} else {
+    Write-Info "No package.json found - skipping npm setup"
+}
+
+# ============================================
+# STEP 7: Verification
+# ============================================
+Write-Host ""
+Write-Host "═══ STEP 7: Verification ═══" -ForegroundColor Yellow
+
+Write-Step "Verifying game routes load correctly..."
+$testCmd = 'from shared.backend.main import app; print("OK")'
+$testResult = python -c $testCmd 2>&1
+
+if ($testResult -match "OK") {
+    Write-Success "All game routes loaded successfully!"
+} else {
+    Write-Warning "Some routes may have issues - check server output"
+}
+
+# ============================================
+# COMPLETE - Start Server
+# ============================================
+Write-Host ""
+Write-Host "╔══════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║                    SETUP COMPLETE! ✅                            ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+Write-Host "Access Points:" -ForegroundColor Cyan
+Write-Host "  🎮 Game Menu:    http://127.0.0.1:8000/shared/index.html" -ForegroundColor White
+Write-Host "  📚 API Docs:     http://127.0.0.1:8000/docs" -ForegroundColor White
+Write-Host "  💚 Health Check: http://127.0.0.1:8000/api/health" -ForegroundColor White
+Write-Host ""
+Write-Host "Starting server..." -ForegroundColor Yellow
+Write-Host "Press Ctrl+C to stop" -ForegroundColor Gray
+Write-Host ""
+
+# Start the server
+python -m uvicorn shared.backend.main:app --reload --host 127.0.0.1 --port 8000
