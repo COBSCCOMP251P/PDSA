@@ -271,7 +271,7 @@ if (-not $SkipDatabase) {
     
     $schemaFiles = @{
         "eight_queens_game" = "games/eight_queens/database/schema.sql"
-        "snake_game" = $null  # Tables may already exist
+        "snake_game" = "games/snake_ladder/database/schema.sql"
         "traffic_simulation_game" = "games/traffic_simulation/database/schema.sql"
         "tsp_game" = "games/traveling_salesman/database/tsp_schema.sql"
         "pdsa_games" = "games/tower_hanoi/database/schema.sql"
